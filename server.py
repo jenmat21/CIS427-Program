@@ -3,7 +3,7 @@
 import socket
 import sqlite3 as sql
 
-#setup port as last of umid and address setup as a pair
+#setup port as last 4 of umid and address setup as a pair
 PORT = 8414
 serverAddress = ("localhost", PORT)
 status = False
@@ -23,9 +23,10 @@ except Exception as e:
 #main server loop - accept connection - closes afterwards temporarily
 while status:
     (clientSocket, clientAddr) = serverSocket.accept()
-
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")
 
+    while status:
+        status = False
+
     serverSocket.close()
-    break
     

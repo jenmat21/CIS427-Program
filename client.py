@@ -20,10 +20,24 @@ try:
 except Exception as e:
     print(f"Connection could not be established with server on {address[0]}:{address[1]} \nException is " + str(e) + "\nProgram exiting...")
 
+def quit():
+    s.close()
+    print("Connection broken... Program exiting...")
+    connection = False
+
+def sendMsg(msg):
+    totalSent = 0
+    while totalSent < len(msg):
+        sent = s.send(msg[totalSent:].encode("utf-8"))
+        if sent == 0:
+            quit()
+        totalSent += sent
+    print("msg sent with total bytes " + totalSent)
+
 #main client command loop - "quit" to quit the program
 while connection:
     cmd = input("CMD>> ")
-    if cmd == "stock":
-        print("stocks apps")
+    if cmd[0:8].lower() == "balance".lower():
+        sendMsg(cmd)
     elif cmd.lower() == "quit".lower():
-        break
+        quit()
