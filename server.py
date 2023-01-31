@@ -27,6 +27,7 @@ def shutdown():
     print("Server shutting down...")
     serverSocket.close()
 
+#sends input string to client of max length MSGLEN
 def sendMsg(msg):
     totalSent = 0
     while len(msg) < MSGLEN:
@@ -40,7 +41,8 @@ def sendMsg(msg):
             break
         totalSent += sent
     print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
-    
+
+#recieves string from client
 def recieveMsg():
     chunks = []
     bytesRecieved = 0
@@ -58,7 +60,7 @@ def recieveMsg():
         returnStr = returnStr + c.decode("utf-8")
     return returnStr.strip()
 
-#main server loop - accept connection - closes afterwards temporarily
+#main server loop - accept connection - runs command loop until quit or shutdown is recieved
 while status:
     (clientSocket, clientAddr) = serverSocket.accept()
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")

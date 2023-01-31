@@ -28,6 +28,7 @@ def quitClient():
     connection = False
     return
 
+#sends input string of max length MSGLEN to the server
 def sendMsg(msg):
     totalSent = 0
     while len(msg) < MSGLEN:
@@ -42,6 +43,7 @@ def sendMsg(msg):
         totalSent += sent
     print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
 
+#recieves string from server
 def recieveMsg():
     chunks = []
     bytesRecieved = 0
@@ -59,11 +61,12 @@ def recieveMsg():
         returnStr = returnStr + c.decode("utf-8")
     return returnStr.strip()
 
-#main client command loop - "quit" to quit the program
+#main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
 while connection:
     cmd = input("CMD>> ")
     if cmd[0:8].lower() == "balance".lower():
         sendMsg(cmd)
+        #does nothing yet
     elif cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
         print("Shutting down server...")
