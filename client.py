@@ -39,5 +39,7 @@ while connection:
     cmd = input("CMD>> ")
     if cmd[0:8].lower() == "balance".lower():
         sendMsg(cmd)
+    elif cmd.lower() == "shutdown".lower():
+        sendMsg(cmd)
     elif cmd.lower() == "quit".lower():
         quit()
