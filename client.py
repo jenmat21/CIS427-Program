@@ -11,7 +11,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connectCmd = input("Please input a server address and port: ")
 address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
 connection = False
-MSGLEN = 4096
+MSGLEN = 32
 
 #try to connect to server - error and exit program if it fails
 try: 
@@ -21,21 +21,43 @@ try:
 except Exception as e:
     print(f"Connection could not be established with server on {address[0]}:{address[1]} \nException is " + str(e) + "\nProgram exiting...")
 
-def quit():
+def quitClient():
     s.close()
-    print("Connection broken... Program exiting...")
+    print("Connection broken - Program exiting...")
+    global connection 
     connection = False
     return
 
 def sendMsg(msg):
     totalSent = 0
+    while len(msg) < MSGLEN:
+        msg = msg + " "
     while totalSent < MSGLEN:
         sent = s.send(msg[totalSent:].encode("utf-8"))
-        if sent == 0:
+        if sent == 0 and msg != "":
             quit()
             break
+        elif msg == "":
+            break
         totalSent += sent
-    print("msg '" + msg + "' sent with total bytes: " + str(totalSent))
+    print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
+
+def recieveMsg():
+    chunks = []
+    bytesRecieved = 0
+    while bytesRecieved < MSGLEN:
+        chunk = s.recv(min(MSGLEN - bytesRecieved, 2048))
+        print(str(bytesRecieved) + ":" + str(chunk))
+        if chunk == b'':
+            global client
+            client = False
+            break
+        chunks.append(chunk)
+        bytesRecieved += len(chunk)
+    returnStr = ""
+    for c in chunks:
+        returnStr = returnStr + c.decode("utf-8")
+    return returnStr.strip()
 
 #main client command loop - "quit" to quit the program
 while connection:
@@ -44,5 +66,8 @@ while connection:
         sendMsg(cmd)
     elif cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
+        print("Shutting down server...")
+        quitClient()
     elif cmd.lower() == "quit".lower():
-        quit()
+        sendMsg("quit")
+        quitClient()

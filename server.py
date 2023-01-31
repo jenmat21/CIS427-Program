@@ -7,7 +7,7 @@ import sqlite3 as sql
 PORT = 8414
 serverAddress = ("localhost", PORT)
 status = False
-MSGLEN = 4096
+MSGLEN = 32
 
 #create server socket
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -22,33 +22,53 @@ except Exception as e:
     print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
 
 def shutdown():
+    global status
     status = False
-
-
-    
+    print("Server shutting down...")
     serverSocket.close()
+
+def sendMsg(msg):
+    totalSent = 0
+    while len(msg) < MSGLEN:
+        msg = msg + " "
+    while totalSent < MSGLEN:
+        sent = clientSocket.send(msg[totalSent:].encode("utf-8"))
+        if sent == 0 and msg != "":
+            quit()
+            break
+        elif msg == "":
+            break
+        totalSent += sent
+    print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
     
-def recieveMsg(cs):
+def recieveMsg():
     chunks = []
     bytesRecieved = 0
     while bytesRecieved < MSGLEN:
-        print("in")
-        chunk = cs.recv(min(MSGLEN - bytesRecieved, 2048))
-        if chunk == "b''":
-            shutdown()
+        chunk = clientSocket.recv(min(MSGLEN - bytesRecieved, 2048))
+        print(str(bytesRecieved) + ":" + str(chunk))
+        if chunk == b'':
+            global client
+            client = False
             break
         chunks.append(chunk)
         bytesRecieved += len(chunk)
-    return chunks
+    returnStr = ""
+    for c in chunks:
+        returnStr = returnStr + c.decode("utf-8")
+    return returnStr.strip()
 
 #main server loop - accept connection - closes afterwards temporarily
 while status:
     (clientSocket, clientAddr) = serverSocket.accept()
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")
+    client = True
 
-    while status:
-        msgChunks = recieveMsg(clientSocket)
-        for c in msgChunks:
-            print(c, end=" ")
-        shutdown()
+    while status and client:
+        msg = recieveMsg()
+        print(msg)
+        if msg.lower() == "shutdown".lower():
+            shutdown()
+        elif msg.lower() == "quit".lower():
+            client = False
     
