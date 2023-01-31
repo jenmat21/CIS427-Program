@@ -7,6 +7,7 @@ import sqlite3 as sql
 PORT = 8414
 serverAddress = ("localhost", PORT)
 status = False
+MSGLEN = 4096
 
 #create server socket
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,13 +21,34 @@ try:
 except Exception as e:
     print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
 
+def shutdown():
+    status = False
+
+
+    
+    serverSocket.close()
+    
+def recieveMsg(cs):
+    chunks = []
+    bytesRecieved = 0
+    while bytesRecieved < MSGLEN:
+        print("in")
+        chunk = cs.recv(min(MSGLEN - bytesRecieved, 2048))
+        if chunk == "b''":
+            shutdown()
+            break
+        chunks.append(chunk)
+        bytesRecieved += len(chunk)
+    return chunks
+
 #main server loop - accept connection - closes afterwards temporarily
 while status:
     (clientSocket, clientAddr) = serverSocket.accept()
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")
 
     while status:
-        status = False
-
-    serverSocket.close()
+        msgChunks = recieveMsg(clientSocket)
+        for c in msgChunks:
+            print(c, end=" ")
+        shutdown()
     

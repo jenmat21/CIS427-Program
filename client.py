@@ -11,6 +11,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connectCmd = input("Please input a server address and port: ")
 address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
 connection = False
+MSGLEN = 4096
 
 #try to connect to server - error and exit program if it fails
 try: 
@@ -24,15 +25,17 @@ def quit():
     s.close()
     print("Connection broken... Program exiting...")
     connection = False
+    return
 
 def sendMsg(msg):
     totalSent = 0
-    while totalSent < len(msg):
+    while totalSent < MSGLEN:
         sent = s.send(msg[totalSent:].encode("utf-8"))
         if sent == 0:
             quit()
+            break
         totalSent += sent
-    print("msg sent with total bytes " + totalSent)
+    print("msg '" + msg + "' sent with total bytes: " + str(totalSent))
 
 #main client command loop - "quit" to quit the program
 while connection:
