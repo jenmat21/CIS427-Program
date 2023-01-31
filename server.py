@@ -2,12 +2,16 @@
 
 import socket
 import sqlite3 as sql
+import os
+import pydb
+
 
 #setup port as last 4 of umid and address setup as a pair
 PORT = 8414
 serverAddress = ("localhost", PORT)
 status = False
 MSGLEN = 32
+DBNAME = "stockDB"
 
 #create server socket
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,6 +24,13 @@ try:
     print(f"Server started on {serverAddress[0]} and is listening on port {serverAddress[1]}\n")
 except Exception as e:
     print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
+
+#connect to DB
+if not os.path.isfile(DBNAME):
+    pydb.initDB()
+db = sql.connect(DBNAME)
+print("Connected to  database: " + DBNAME)
+cur = db.cursor()
 
 def shutdown():
     global status
