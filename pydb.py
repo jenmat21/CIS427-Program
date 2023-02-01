@@ -2,13 +2,16 @@
 
 import sqlite3 as sql
 
-DBNAME = "stockDB"
+#db init
+def initDB(DBNAME):
+    try:
+        db = sql.connect(DBNAME)
+        print("Database " + DBNAME + " created")
+        cur = db.cursor()
+    except Exception as e:
+        print("Database failed to initialize with error " + str(e))
+        return None
 
-def initDB():
-    db = sql.connect(DBNAME)
-    print("Database " + DBNAME + " created")
-
-    cur = db.cursor()
 
     cur.execute('''CREATE TABLE IF NOT EXISTS Users 
            ( 
@@ -31,5 +34,12 @@ def initDB():
             FOREIGN KEY (user_id) REFERENCES Users (ID)             
             ); ''')
     print("Stocks table created in database")
+    return db
     
+#db buy
 
+#db sell
+
+#db get
+
+#db addUser

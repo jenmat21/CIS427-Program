@@ -3,15 +3,24 @@
 import socket
 import sqlite3 as sql
 import os
-import pydb
+import pydb #database manipulation commands are available via this file
 
 
-#setup port as last 4 of umid and address setup as a pair
+#setup global variables
 PORT = 8414
-serverAddress = ("localhost", PORT)
-status = False
 MSGLEN = 32
 DBNAME = "stockDB"
+serverAddress = ("localhost", PORT)
+status = True
+
+#init db and setup cursor
+db = pydb.initDB(DBNAME)
+if db != None:
+    print("Connected to database: " + DBNAME + "\n")
+    cur = db.cursor()
+else:
+    status = False
+    print("Database failed to connect - Program exiting...")
 
 #create server socket
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -19,19 +28,13 @@ serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #test connection with serverAddress - error if it doesn't work and exit program
 try:
     serverSocket.bind(serverAddress)
-    status = True
     serverSocket.listen(5)
     print(f"Server started on {serverAddress[0]} and is listening on port {serverAddress[1]}\n")
 except Exception as e:
+    status = False
     print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
 
-#connect to DB
-if not os.path.isfile(DBNAME):
-    pydb.initDB()
-db = sql.connect(DBNAME)
-print("Connected to  database: " + DBNAME)
-cur = db.cursor()
-
+#server shutdown command
 def shutdown():
     global status
     status = False
@@ -83,5 +86,6 @@ while status:
         if msg.lower() == "shutdown".lower():
             shutdown()
         elif msg.lower() == "quit".lower():
+            print(f"Client with address {clientAddr[0]}:{clientAddr[1]} disconnected \nListening for new client on port {PORT}")
             client = False
     
