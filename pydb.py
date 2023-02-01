@@ -37,9 +37,24 @@ def initDB(DBNAME):
     return db
     
 #db buy
+def buyStock(userID, stockSymbol, amount, price):
+        pass
 
 #db sell
+def sellStock(userID, stockSymbol, amount, price):
+        pass
+#db get stock list
+def getStockList():
+        pass
 
-#db get
+#db get stock
+def getStock(stockSymbol):
+        pass
+
+#db get user info
+def getUserInfo(userID):
+        pass
 
 #db addUser
+def addUser(fName, lName, username, password, startBalance):
+        pass
