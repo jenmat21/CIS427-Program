@@ -88,3 +88,9 @@ while status:
         elif msg.lower() == "quit".lower():
             print(f"Client with address {clientAddr[0]}:{clientAddr[1]} disconnected \nListening for new client on port {PORT}")
             client = False   
+        elif msg.lower() == "1".lower():
+            print(str(pydb.getUserInfo(1)))
+            if pydb.getUserInfo(1) == None:
+                pydb.addUser("NULL", "NULL", "client", "NULL", 100)
+            else:
+                print(str(pydb.getUserInfo(1)[5]))

@@ -64,9 +64,8 @@ def recieveMsg():
 #main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
 while connection:
     cmd = input("CMD>> ")
-    if cmd[0:8].lower() == "balance".lower():
+    if cmd[0:8].lower() == "1".lower():
         sendMsg(cmd)
-        #does nothing yet
     elif cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
         print("Shutting down server...")

@@ -1,9 +1,13 @@
 #database file
 
 import sqlite3 as sql
+db = None
+cur = None
 
 #db init
 def initDB(DBNAME):
+    global db
+    global cur
     try:
         db = sql.connect(DBNAME)
         print("Database " + DBNAME + " created")
@@ -53,8 +57,16 @@ def getStock(stockSymbol):
 
 #db get user info
 def getUserInfo(userID):
-        pass
+        cur.execute("SELECT * FROM Users WHERE ID = " + str(userID))
+        user = cur.fetchall()
+        if len(user) == 0:
+                return(None)
+        else:
+                 return(user)
 
 #db addUser
 def addUser(fName, lName, username, password, startBalance):
+        cur.execute("SELECT * FROM Users")
+        users = cur.fetchall()
+        print("in")
         pass
