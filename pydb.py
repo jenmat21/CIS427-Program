@@ -66,7 +66,5 @@ def getUserInfo(userID):
 
 #db addUser
 def addUser(fName, lName, username, password, startBalance):
-        cur.execute("SELECT * FROM Users")
-        users = cur.fetchall()
         print("in")
-        pass
+        cur.execute(f"INSERT INTO Users (first_name, last_name, user_name, password, usd_balance) VALUES ('{fName}', '{lName}', '{username}', '{password}', {startBalance})")
