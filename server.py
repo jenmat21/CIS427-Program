@@ -132,6 +132,8 @@ def balance(user_id):
 
 def list_stocks(user_id):
     query = "SELECT stock_name FROM Stocks WHERE user_id = ?"
+    cur.execute(query,(user_id))
+   
     db.commit()
 
 
