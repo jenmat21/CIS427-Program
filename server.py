@@ -1,4 +1,4 @@
-#server
+# server
 
 import socket
 import sqlite3 as sql
@@ -6,31 +6,34 @@ import os
 import pydb
 
 
-#setup port as last 4 of umid and address setup as a pair
+# setup port as last 4 of umid and address setup as a pair
 PORT = 8414
 serverAddress = ("localhost", PORT)
 status = False
 MSGLEN = 32
 DBNAME = "stockDB"
 
-#create server socket
+# create server socket
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-#test connection with serverAddress - error if it doesn't work and exit program
+# test connection with serverAddress - error if it doesn't work and exit program
 try:
     serverSocket.bind(serverAddress)
     status = True
     serverSocket.listen(5)
-    print(f"Server started on {serverAddress[0]} and is listening on port {serverAddress[1]}\n")
+    print(
+        f"Server started on {serverAddress[0]} and is listening on port {serverAddress[1]}\n")
 except Exception as e:
-    print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
+    print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(
+        e) + "\nProgram exiting...")
 
-#connect to DB
+# connect to DB
 if not os.path.isfile(DBNAME):
     pydb.initDB()
 db = sql.connect(DBNAME)
 print("Connected to  database: " + DBNAME)
 cur = db.cursor()
+
 
 def shutdown():
     global status
@@ -38,7 +41,9 @@ def shutdown():
     print("Server shutting down...")
     serverSocket.close()
 
-#sends input string to client of max length MSGLEN
+# sends input string to client of max length MSGLEN
+
+
 def sendMsg(msg):
     totalSent = 0
     while len(msg) < MSGLEN:
@@ -53,7 +58,9 @@ def sendMsg(msg):
         totalSent += sent
     print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
 
-#recieves string from client
+# recieves string from client
+
+
 def recieveMsg():
     chunks = []
     bytesRecieved = 0
@@ -71,7 +78,64 @@ def recieveMsg():
         returnStr = returnStr + c.decode("utf-8")
     return returnStr.strip()
 
-#main server loop - accept connection - runs command loop until quit or shutdown is recieved
+
+def buy_stock(ticker, name, quantity, user_id, stock_price):
+    # Check if user has sufficient funds
+    query = "SELECT usd_balance FROM Users WHERE ID = ?"
+    cur.execute(query, (user_id,))
+    balance = cur.fetchone()[0]
+    if balance < quantity * stock_price:
+        raise Exception("Insufficient funds")
+
+    # Update stock quantity
+    query = "SELECT user_id FROM Stocks WHERE stock_symbol = ?"
+    cur.execute(query, (ticker))
+    stock = cur.fetchone()
+    if stock is not None:
+        query = "UPDATE Stocks SET stock_balance = stock_balance + ? WHERE ticker = ?"
+        cur.execute(query, (quantity, ticker))
+    query = "INSERT INTO Stocks (stock_symbol, stock_name, stock_balance) VALUES (?, ?, ?)"
+    cur.execute(query, (ticker, name, quantity))
+
+    # Update user balance
+    query = "UPDATE Users SET usd_balance = usd_balance - ? WHERE ID = ?"
+    cur.execute(query, (quantity * stock_price, user_id))
+
+    db.commit()
+
+
+def sell_stock(ticker, quantity, user_id, stock_price):
+    query = "SELECT quantity FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
+    cur.execute(query, (ticker, user_id))
+    stock_balance = cur.fetchone()[0]
+    if stock_balance < quantity:
+        raise Exception("Insufficient stock quantity")
+
+    # Update stock quantity
+    query = "UPDATE Stocks SET stock_balance = stock_balance - ? WHERE stock_symbol = ? AND user_id = ?"
+    cur.execute(query, (quantity, ticker, user_id))
+
+    # Update user balance
+    query = "UPDATE Users SET usd_balance = usd_balance + ? WHERE ID = ?"
+    cur.execute(query, (quantity * stock_price, user_id))
+
+    db.commit()
+
+
+def balance(user_id):
+    query = "SELECT usd_balance FROM Users WHERE ID = ?"
+    cur.execute(query, (user_id,))
+    balance = cur.fetchall()
+    return balance
+    db.commit()
+
+
+def list_stocks(user_id):
+    query = "SELECT stock_name FROM Stocks WHERE user_id = ?"
+    db.commit()
+
+
+# main server loop - accept connection - runs command loop until quit or shutdown is recieved
 while status:
     (clientSocket, clientAddr) = serverSocket.accept()
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")
@@ -84,4 +148,11 @@ while status:
             shutdown()
         elif msg.lower() == "quit".lower():
             client = False
-    
+        elif msg.lower() == "buy".lower():
+            buy_stock()
+        elif msg.lower() == "sell".lower():
+            sell_stock()
+        elif msg.lower() == "balance".lower():
+            balance(1)
+        elif msg.lower() == "list".lower():
+            list_stocks()

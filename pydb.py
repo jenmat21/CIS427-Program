@@ -1,8 +1,9 @@
-#database file
+# database file
 
 import sqlite3 as sql
 
 DBNAME = "stockDB"
+
 
 def initDB():
     db = sql.connect(DBNAME)
@@ -31,5 +32,3 @@ def initDB():
             FOREIGN KEY (user_id) REFERENCES Users (ID)             
             ); ''')
     print("Stocks table created in database")
-    
-
