@@ -8,7 +8,7 @@ import pydb #database manipulation commands are available via this file
 
 #setup global variables
 PORT = 8414
-MSGLEN = 32
+MSGLEN = 64
 DBNAME = "stockDB"
 serverAddress = ("localhost", PORT)
 status = True
@@ -56,6 +56,10 @@ def sendMsg(msg):
         totalSent += sent
     print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
 
+def balance(userID):
+    UI = pydb.getUserInfo(1)
+    return UI[0][5]
+
 #recieves string from client
 def recieveMsg():
     chunks = []
@@ -80,6 +84,9 @@ while status:
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")
     client = True
 
+    if (pydb.getUserInfo(1) == None):
+        pydb.addUser("NULL", "NULL", "client", "NULL", 100)
+
     while status and client:
         msg = recieveMsg()
         print(msg)
@@ -87,7 +94,10 @@ while status:
             shutdown()
         elif msg.lower() == "quit".lower():
             print(f"Client with address {clientAddr[0]}:{clientAddr[1]} disconnected \nListening for new client on port {PORT}")
-            client = False   
+            client = False  
+        elif msg.lower()[0:7] == "balance".lower():
+            userBalance = balance(1)
+            sendMsg("200 OK " + str(userBalance) + " " + str(1))
         elif msg.lower() == "1".lower():
             if pydb.getUserInfo(1) == None:
                 pydb.addUser("NULL", "NULL", "client", "NULL", 100)

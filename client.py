@@ -11,7 +11,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connectCmd = input("Please input a server address and port: ")
 address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
 connection = False
-MSGLEN = 32
+MSGLEN = 64
 
 #try to connect to server - error and exit program if it fails
 try: 
@@ -70,6 +70,11 @@ while connection:
         sendMsg(cmd)
         print("Shutting down server...")
         quitClient()
+    elif cmd.lower()[0:7] == "balance".lower():
+        sendMsg(cmd)
+        response = recieveMsg()
+        if response[0:2] == "200".lower():
+            print(response[7:])
     elif cmd.lower() == "quit".lower():
         sendMsg("quit")
         quitClient()
