@@ -81,6 +81,7 @@ def recieveMsg():
 
 def buy_stock(ticker, name, quantity, user_id, stock_price):
     # Check if user has sufficient funds
+    print("Buy success")
     query = "SELECT usd_balance FROM Users WHERE ID = ?"
     cur.execute(query, (user_id,))
     balance = cur.fetchone()[0]
@@ -110,7 +111,6 @@ def sell_stock(ticker, quantity, user_id, stock_price):
     stock_balance = cur.fetchone()[0]
     if stock_balance < quantity:
         raise Exception("Insufficient stock quantity")
-
     # Update stock quantity
     query = "UPDATE Stocks SET stock_balance = stock_balance - ? WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (quantity, ticker, user_id))
@@ -123,6 +123,7 @@ def sell_stock(ticker, quantity, user_id, stock_price):
 
 
 def balance(user_id):
+    UI = pydb.getUserInfo(5)
     query = "SELECT usd_balance FROM Users WHERE ID = ?"
     cur.execute(query, (user_id,))
     balance = cur.fetchall()
@@ -132,8 +133,9 @@ def balance(user_id):
 
 def list_stocks(user_id):
     query = "SELECT stock_name FROM Stocks WHERE user_id = ?"
-    cur.execute(query,(user_id))
-   
+    cur.execute(query, (user_id))
+    stocks = cur.fetchall()
+    return stocks
     db.commit()
 
 
@@ -150,11 +152,15 @@ while status:
             shutdown()
         elif msg.lower() == "quit".lower():
             client = False
-        elif msg.lower() == "buy".lower():
-            buy_stock()
-        elif msg.lower() == "sell".lower():
-            sell_stock()
+        elif msg[0:3].lower() == "buy".lower():
+            arguments = msg.split(',')
+            function_arguments = arguments[1:]
+            buy_stock(*function_arguments)
+        elif msg[0:3].lower() == "sell".lower():
+            arguments = msg.split(',')
+            function_arguments = arguments[1:]
+            sell_stock(*function_arguments)
         elif msg.lower() == "balance".lower():
             balance(1)
         elif msg.lower() == "list".lower():
-            list_stocks()
+            list_stocks(1)
