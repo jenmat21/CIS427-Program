@@ -78,10 +78,8 @@ def recieveMsg():
         returnStr = returnStr + c.decode("utf-8")
     return returnStr.strip()
 
-
-def buy_stock(ticker, name, quantity, user_id, stock_price):
+def buy_stock(ticker, quantity, stock_price, user_id):
     # Check if user has sufficient funds
-    print("Buy success")
     query = "SELECT usd_balance FROM Users WHERE ID = ?"
     cur.execute(query, (user_id,))
     balance = cur.fetchone()[0]
@@ -93,10 +91,10 @@ def buy_stock(ticker, name, quantity, user_id, stock_price):
     cur.execute(query, (ticker))
     stock = cur.fetchone()
     if stock is not None:
-        query = "UPDATE Stocks SET stock_balance = stock_balance + ? WHERE ticker = ?"
+        query = "UPDATE Stocks SET stock_balance = stock_balance + ? WHERE stock_symbol = ?"
         cur.execute(query, (quantity, ticker))
-    query = "INSERT INTO Stocks (stock_symbol, stock_name, stock_balance) VALUES (?, ?, ?)"
-    cur.execute(query, (ticker, name, quantity))
+    query = "INSERT INTO Stocks (stock_symbol, stock_balance) VALUES (?, ?)"
+    cur.execute(query, (ticker, quantity))
 
     # Update user balance
     query = "UPDATE Users SET usd_balance = usd_balance - ? WHERE ID = ?"
@@ -104,8 +102,14 @@ def buy_stock(ticker, name, quantity, user_id, stock_price):
 
     db.commit()
 
-
-def sell_stock(ticker, quantity, user_id, stock_price):
+#Here we will need the stock price as well to update the balance when the user sells the stock: check line 122-124
+def sell_stock(ticker, quantity, stock_price, user_id):
+    query = "SELECT stock_balance FROM Stocks WHERE user_id = ? AND stock_symbol = ?"
+    cur.execute(query, (user_id, ticker))
+    result = cur.fetchone()
+    if result is None:
+        print("User does not hold the stock with ticker '{}'".format(ticker))
+        return
     query = "SELECT quantity FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
     stock_balance = cur.fetchone()[0]
@@ -153,11 +157,11 @@ while status:
         elif msg.lower() == "quit".lower():
             client = False
         elif msg[0:3].lower() == "buy".lower():
-            arguments = msg.split(',')
+            arguments = msg.split(' ')
             function_arguments = arguments[1:]
             buy_stock(*function_arguments)
         elif msg[0:3].lower() == "sell".lower():
-            arguments = msg.split(',')
+            arguments = msg.split(' ')
             function_arguments = arguments[1:]
             sell_stock(*function_arguments)
         elif msg.lower() == "balance".lower():
