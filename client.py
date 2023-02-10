@@ -21,13 +21,6 @@ try:
 except Exception as e:
     print(f"Connection could not be established with server on {address[0]}:{address[1]} \nException is " + str(e) + "\nProgram exiting...")
 
-def quitClient():
-    s.close()
-    print("Connection broken - Program exiting...")
-    global connection 
-    connection = False
-    return
-
 #sends input string of max length MSGLEN to the server
 def sendMsg(msg):
     totalSent = 0
@@ -61,20 +54,48 @@ def recieveMsg():
         returnStr = returnStr + c.decode("utf-8")
     return returnStr.strip()
 
+def quitClient():
+    s.close()
+    print("Connection broken - Program exiting...")
+    global connection 
+    connection = False
+    return
+
 #main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
 while connection:
     cmd = input("CMD>> ")
-    if cmd[0:8].lower() == "1".lower():
-        sendMsg(cmd)
+    if cmd[0:1].lower() == "1".lower():
+        sendMsg(cmd[2:])
     elif cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
         print("Shutting down server...")
         quitClient()
-    elif cmd.lower()[0:7] == "balance".lower():
-        sendMsg(cmd)
-        response = recieveMsg()
-        if response[0:2] == "200".lower():
-            print(response[7:])
     elif cmd.lower() == "quit".lower():
         sendMsg("quit")
         quitClient()
+    elif cmd.lower()[0:7] == "balance".lower():
+        sendMsg(cmd)
+        response = recieveMsg()
+        if response[0:3] == "200":
+            print(response[7:])
+    elif cmd.lower()[0:5] == "list".lower():
+        sendMsg(cmd)
+        response = recieveMsg()
+        if response[0:3] == "200":
+            print(response[7:])
+        elif response[0:3] == "400":
+            print(response)
+    elif cmd.lower()[0:3] == "buy".lower():
+        sendMsg(cmd)
+        response = recieveMsg()
+        if response[0:3] == "200":
+            print(response[7:])
+        elif response[0:3] == "400":
+            print(response)
+    elif cmd.lower()[0:4] == "sell".lower():
+        sendMsg(cmd)
+        response = recieveMsg()
+        if response[0:3] == "200":
+            print(response[7:])
+        elif response[0:3] == "400":
+            print(response)
