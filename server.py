@@ -34,13 +34,6 @@ except Exception as e:
     status = False
     print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
 
-#server shutdown command
-def shutdown():
-    global status
-    status = False
-    print("Server shutting down...")
-    serverSocket.close()
-
 #sends input string to client of max length MSGLEN
 def sendMsg(msg):
     totalSent = 0
@@ -55,10 +48,6 @@ def sendMsg(msg):
             break
         totalSent += sent
     print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
-
-def balance(userID):
-    UI = pydb.getUserInfo(1)
-    return UI[0][5]
 
 #recieves string from client
 def recieveMsg():
@@ -77,6 +66,64 @@ def recieveMsg():
     for c in chunks:
         returnStr = returnStr + c.decode("utf-8")
     return returnStr.strip()
+
+def balance(userID):
+    UI = pydb.getUserInfo(1)
+    return UI[0][5]
+
+def buy_stock(ticker, name, quantity, user_id, stock_price):
+    # Check if user has sufficient funds
+    query = "SELECT usd_balance FROM Users WHERE ID = ?"
+    cur.execute(query, (user_id,))
+    balance = cur.fetchone()[0]
+    if balance < quantity * stock_price:
+        raise Exception("Insufficient funds")
+
+    # Update stock quantity
+    query = "SELECT user_id FROM Stocks WHERE stock_symbol = ?"
+    cur.execute(query, (ticker))
+    stock = cur.fetchone()
+    if stock is not None:
+        query = "UPDATE Stocks SET stock_balance = stock_balance + ? WHERE ticker = ?"
+        cur.execute(query, (quantity, ticker))
+    query = "INSERT INTO Stocks (stock_symbol, stock_name, stock_balance) VALUES (?, ?, ?)"
+    cur.execute(query, (ticker, name, quantity))
+
+    # Update user balance
+    query = "UPDATE Users SET usd_balance = usd_balance - ? WHERE ID = ?"
+    cur.execute(query, (quantity * stock_price, user_id))
+
+    db.commit()
+
+def sell_stock(ticker, quantity, user_id, stock_price):
+    query = "SELECT quantity FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
+    cur.execute(query, (ticker, user_id))
+    stock_balance = cur.fetchone()[0]
+    if stock_balance < quantity:
+        raise Exception("Insufficient stock quantity")
+
+    # Update stock quantity
+    query = "UPDATE Stocks SET stock_balance = stock_balance - ? WHERE stock_symbol = ? AND user_id = ?"
+    cur.execute(query, (quantity, ticker, user_id))
+
+    # Update user balance
+    query = "UPDATE Users SET usd_balance = usd_balance + ? WHERE ID = ?"
+    cur.execute(query, (quantity * stock_price, user_id))
+
+    db.commit()
+
+def list_stocks(user_id):
+    query = "SELECT stock_name FROM Stocks WHERE user_id = ?"
+    cur.execute(query,(user_id))
+   
+    db.commit()
+
+#server shutdown command
+def shutdown():
+    global status
+    status = False
+    print("Server shutting down...")
+    serverSocket.close()
 
 #main server loop - accept connection - runs command loop until quit or shutdown is recieved
 while status:
@@ -98,9 +145,4 @@ while status:
         elif msg.lower()[0:7] == "balance".lower():
             userBalance = balance(1)
             sendMsg("200 OK " + str(userBalance) + " " + str(1))
-        elif msg.lower() == "1".lower():
-            if pydb.getUserInfo(1) == None:
-                pydb.addUser("NULL", "NULL", "client", "NULL", 100)
-            else:
-                print(str(pydb.getUserInfo(1)[5]))
-            print(str(pydb.getUserInfo(1)))
+        
