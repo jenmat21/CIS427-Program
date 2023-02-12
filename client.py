@@ -42,16 +42,15 @@ def recieveMsg():
     bytesRecieved = 0
     while bytesRecieved < MSGLEN:
         chunk = s.recv(min(MSGLEN - bytesRecieved, 2048))
-        print(str(bytesRecieved) + ":" + str(chunk))
-        if chunk == b'':
-            global client
-            client = False
+        if chunk.decode("utf-8") == "":
+            quitClient()
             break
         chunks.append(chunk)
         bytesRecieved += len(chunk)
     returnStr = ""
     for c in chunks:
         returnStr = returnStr + c.decode("utf-8")
+    print("msg '" + returnStr.strip() + "' recieved with total bytes: " + str(bytesRecieved))
     return returnStr.strip()
 
 def quitClient():
@@ -77,12 +76,23 @@ while connection:
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
-            print(response[7:])
+            print(f"Balance for user {1}: " + response[7:])
+        elif response[0:3] == "400":
+            print(response)
     elif cmd.lower()[0:5] == "list".lower():
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
-            print(response[7:])
+            print(f"The list of stock records for user {1}:")
+
+            stocks = response[7:].split()
+            stocksList = []
+            for stock in stocks:
+                stockTuple = stock[1:-1].split(",")
+                stocksList.append(stockTuple)
+
+            for stock in stocksList:
+                print(stock[0], stock[1], stock[3], stock[4])
         elif response[0:3] == "400":
             print(response)
     elif cmd.lower()[0:3] == "buy".lower():
