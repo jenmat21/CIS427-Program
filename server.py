@@ -8,7 +8,7 @@ import pydb #database manipulation commands are available via this file
 
 #setup global variables
 PORT = 8414
-MSGLEN = 64
+MSGLEN = 128
 DBNAME = "stockDB"
 serverAddress = ("localhost", PORT)
 status = True
@@ -33,6 +33,19 @@ try:
 except Exception as e:
     status = False
     print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
+
+#DATABASE FUNCTIONS
+def addUser(fName, lName, username, password, startBalance):
+    cur.execute(f"INSERT INTO Users (first_name, last_name, user_name, password, usd_balance) VALUES ('{fName}', '{lName}', '{username}', '{password}', {startBalance})")
+    db.commit()
+
+def getUserInfo(userID):
+    cur.execute("SELECT * FROM Users WHERE ID = " + str(userID))
+    user = cur.fetchall()
+    if len(user) == 0:
+        return(None)
+    else:
+        return(user)
 
 #sends input string to client of max length MSGLEN
 def sendMsg(msg):
@@ -68,7 +81,7 @@ def recieveMsg():
     return returnStr.strip()
 
 def balance(userID):
-    UI = pydb.getUserInfo(1)
+    UI = getUserInfo(userID)
     return UI[0][5]
 
 def buy_stock(ticker, name, quantity, user_id, stock_price):
@@ -114,9 +127,11 @@ def sell_stock(ticker, quantity, user_id, stock_price):
 
 def list_stocks(user_id):
     query = "SELECT stock_name FROM Stocks WHERE user_id = ?"
-    cur.execute(query,(user_id))
-   
-    db.commit()
+    cur.execute(query, (user_id,))
+    
+    stocks = cur.fetchall()
+
+    return stocks
 
 #server shutdown command
 def shutdown():
@@ -131,8 +146,8 @@ while status:
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")
     client = True
 
-    if (pydb.getUserInfo(1) == None):
-        pydb.addUser("NULL", "NULL", "client", "NULL", 100)
+    if (getUserInfo(1) == None):
+        addUser("NULL", "NULL", "client", "NULL", 100)
 
     while status and client:
         msg = recieveMsg()
@@ -145,4 +160,23 @@ while status:
         elif msg.lower()[0:7] == "balance".lower():
             userBalance = balance(1)
             sendMsg("200 OK " + str(userBalance) + " " + str(1))
+        elif msg.lower()[0:4] == "list".lower():
+            stocks = list_stocks(1)
+            sendString = ""
+
+            for stock in stocks:
+                print(str(stock[0]) + ":" + str(stock[1]))
+                sendString = sendString + f" [{stock[0]},{stock[1]},{stock[2]},{stock[3]},{stock[4]}] "
+
+            sendMsg("200 OK " + sendString)
+        elif msg.lower()[0:3] == "buy".lower():
+            
+
+            sendMsg("200 OK " + str(userBalance) + " " + str(1))
+        elif msg.lower()[0:4] == "sell".lower():
+            
+
+            sendMsg("200 OK " + str(userBalance) + " " + str(1))
+        else:
+            sendMsg("400 ERROR Invalid Command")
         

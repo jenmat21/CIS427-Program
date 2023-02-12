@@ -40,21 +40,6 @@ def initDB(DBNAME):
     print("Stocks table created in database")
     return db
     
-#db buy
-def buyStock(userID, stockSymbol, amount, price):
-        pass
-
-#db sell
-def sellStock(userID, stockSymbol, amount, price):
-        pass
-#db get stock list
-def getStockList():
-        pass
-
-#db get stock
-def getStock(stockSymbol):
-        pass
-
 #db get user info
 def getUserInfo(userID):
         cur.execute("SELECT * FROM Users WHERE ID = " + str(userID))

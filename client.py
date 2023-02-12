@@ -11,7 +11,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connectCmd = input("Please input a server address and port: ")
 address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
 connection = False
-MSGLEN = 64
+MSGLEN = 128
 
 #try to connect to server - error and exit program if it fails
 try: 
