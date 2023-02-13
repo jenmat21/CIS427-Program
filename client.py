@@ -96,6 +96,135 @@ while connection:
         elif response[0:3] == "400":
             print(response)
     elif cmd.lower()[0:3] == "buy".lower():
+        parameters = cmd.split(" ")
+        price_flag = False
+        stock_flag = False
+        uid_flag = False
+        symbol = ""
+        if len(parameters) == 0 or len(parameters) == 1:
+            symbol = str(input("Please enter stock symbol\n"))
+            while stock_flag == False:
+                try:
+                    stock = float(input("Please enter stock ammount as a float or integer\n"))
+                    stock_flag = True
+                except:
+                    stock_flag = False
+            while price_flag == False:
+                try:
+                    price = float(input("Please enter stock price per share as a float or integer\n"))
+                    price_flag = True
+                except:
+                    price_flag = False
+            while uid_flag == False:
+                try:
+                    uid = int(input("Please enter user id number as an integer\n"))
+                    uid_flag = True
+                except:
+                    uid_flag = False
+            cmd = "BUY " + symbol +" "+ stock +" "+ price +" "+ uid+"\n"
+        elif len(parameters) == 2:
+            symbol = str(parameters[1])
+            while stock_flag == False:
+                try:
+                    stock = float(input("Please enter stock ammount as a float or integer\n"))
+                    stock_flag = True
+                except:
+                    stock_flag = False
+            while price_flag == False:
+                try:
+                    price = float(input("Please enter stock price per share as a float or integer\n"))
+                    price_flag = True
+                except:
+                    price_flag = False
+            while uid_flag == False:
+                try:
+                    uid = int(input("Please enter user id number as an integer\n"))
+                    uid_flag = True
+                except:
+                    uid_flag = False
+            cmd = "BUY " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
+        elif len(parameters) == 3:
+            symbol = str(parameters[1])
+            try:
+                stock = float(parameters[2])
+            except:
+                while stock_flag == False:
+                    try:
+                        stock = float(input("Please enter stock ammount as a float or integer\n"))
+                        stock_flag = True
+                    except:
+                        stock_flag = False
+            while price_flag == False:
+                try:
+                    price = float(input("Please enter stock price per share as a float or integer\n"))
+                    price_flag = True
+                except:
+                    price_flag = False
+            
+            while uid_flag == False:
+                try:
+                    uid = int(input("Please enter user id numberas an integer\n"))
+                    uid_flag = True
+                except:
+                    uid_flag = False
+            cmd = "BUY " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
+        elif len(parameters) == 4:
+            symbol = str(parameters[1])
+            try:
+                stock = float(parameters[2])
+            except:
+                while stock_flag == False:
+                    try:
+                        stock = float(input("Please enter stock ammount as a float or integer\n"))
+                        stock_flag = True
+                    except:
+                        stock_flag = False
+            try:
+                price = float(parameters[3])
+            except:
+                while price_flag == False:
+                    try:
+                        price = float(input("Please enter stock price per share as a float or integer\n"))
+                        price_flag = True
+                    except:
+                        price_flag = False
+            while uid_flag == False:
+                try:
+                    uid = int(input("Please enter user id number as an integer\n"))
+                    uid_flag = True
+                except:
+                    uid_flag = False
+            cmd = "BUY " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
+        elif len(parameters) >= 5:
+            symbol = str(parameters[1])
+            try:
+                stock = float(parameters[2])
+            except:
+                while stock_flag == False:
+                    try:
+                        stock = float(input("Please enter stock ammount as a float or integer\n"))
+                        stock_flag = True
+                    except:
+                        stock_flag = False
+            try:
+                price = float(parameters[3])
+            except:
+                while price_flag == False:
+                    try:
+                        price = float(input("Please enter stock price per share as a float or integer\n"))
+                        price_flag = True
+                    except:
+                        price_flag = False
+            try:
+                uid = int(parameters[4])
+            except:
+                while uid_flag == False:
+                    try:
+                        uid = float(input("Please enter user id number as an integer\n"))
+                        uid_flag = True
+                    except:
+                        uid_flag = False
+            cmd = "BUY " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
@@ -103,6 +232,134 @@ while connection:
         elif response[0:3] == "400":
             print(response)
     elif cmd.lower()[0:4] == "sell".lower():
+        parameters = cmd.split(" ")
+        price_flag = False
+        stock_flag = False
+        uid_flag = False
+        symbol = ""
+        if len(parameters) == 0 or len(parameters) == 1:
+            symbol = str(input("Please enter stock symbol\n"))
+            while price_flag == False:
+                try:
+                    price = float(input("Please enter stock price per share as a float or integer\n"))
+                    price_flag = True
+                except:
+                    price_flag = False
+            while stock_flag == False:
+                try:
+                    stock = float(input("Please enter stock ammount as a float or integer\n"))
+                    stock_flag = True
+                except:
+                    stock_flag = False
+            while uid_flag == False:
+                try:
+                    uid = int(input("Please enter user id number as an integer\n"))
+                    uid_flag = True
+                except:
+                    uid_flag = False
+            cmd = "SELL " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
+        elif len(parameters) == 2:
+            symbol = str(parameters[1])
+            while price_flag == False:
+                try:
+                    price = float(input("Please enter stock price per share as a float or integer\n"))
+                    price_flag = True
+                except:
+                    price_flag = False
+            while stock_flag == False:
+                try:
+                    stock = float(input("Please enter stock ammount as a float or integer\n"))
+                    stock_flag = True
+                except:
+                    stock_flag = False
+            while uid_flag == False:
+                try:
+                    uid = int(input("Please enter user id number as an integer\n"))
+                    uid_flag = True
+                except:
+                    uid_flag = False
+            cmd = "SELL " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
+        elif len(parameters) == 3:
+            symbol = str(parameters[1])
+            try:
+                price = float(parameters[2])
+            except:
+                while price_flag == False:
+                    try:
+                        price = float(input("Please enter stock price per share as a float or integer\n"))
+                        price_flag = True
+                    except:
+                        price_flag = False
+            while stock_flag == False:
+                try:
+                    stock = float(input("Please enter stock ammount as a float or integer\n"))
+                    stock_flag = True
+                except:
+                    stock_flag = False
+            while uid_flag == False:
+                try:
+                    uid = int(input("Please enter user id numberas an integer\n"))
+                    uid_flag = True
+                except:
+                    uid_flag = False
+            cmd = "SELL " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
+        elif len(parameters) == 4:
+            symbol = str(parameters[1])
+            try:
+                price = float(parameters[2])
+            except:
+                while price_flag == False:
+                    try:
+                        price = float(input("Please enter stock price per share as a float or integer\n"))
+                        price_flag = True
+                    except:
+                        price_flag = False
+            try:
+                stock = float(parameters[3])
+            except:
+                while stock_flag == False:
+                    try:
+                        stock = float(input("Please enter stock ammount as a float or integer\n"))
+                        stock_flag = True
+                    except:
+                        stock_flag = False
+            while uid_flag == False:
+                try:
+                    uid = int(input("Please enter user id number as an integer\n"))
+                    uid_flag = True
+                except:
+                    uid_flag = False
+            cmd = "SELL " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
+        elif len(parameters) >= 5:
+            symbol = str(parameters[1])
+            try:
+                price = float(parameters[2])
+            except:
+                while price_flag == False:
+                    try:
+                        price = float(input("Please enter stock price per share as a float or integer\n"))
+                        price_flag = True
+                    except:
+                        price_flag = False
+            try:
+                stock = float(parameters[3])
+            except:
+                while stock_flag == False:
+                    try:
+                        stock = float(input("Please enter stock ammount as a float or integer\n"))
+                        stock_flag = True
+                    except:
+                        stock_flag = False
+            try:
+                uid = int(parameters[4])
+            except:
+                while uid_flag == False:
+                    try:
+                        uid = float(input("Please enter user id number as an integer\n"))
+                        uid_flag = True
+                    except:
+                        uid_flag = False
+            cmd = "SELL " + symbol +" "+ price +" "+ stock +" "+ uid+"\n"
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
