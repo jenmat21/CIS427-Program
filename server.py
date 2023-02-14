@@ -92,7 +92,7 @@ def balance(userID):
         return None
 
 #buy stock funciton
-def buy_stock(ticker, quantity, stock_price, user_id):
+def buy_stock(ticker, quantity, stock_price, user_id = 1):
     # Check if user has sufficient funds
     userBal = balance(user_id)
     totalCost = float(quantity) * float(stock_price)
@@ -102,8 +102,9 @@ def buy_stock(ticker, quantity, stock_price, user_id):
     # Update stock quantity
     query = "SELECT * FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
-    stock = cur.fetchall()
-    if stock is not None:
+    stock = cur.fetchone()
+    if not (stock is None):
+        print("in")
         query = "UPDATE Stocks SET stock_balance = stock_balance + ? WHERE stock_symbol = ? AND user_id = ?"
         cur.execute(query, (quantity, ticker, user_id))
     else:
@@ -118,7 +119,7 @@ def buy_stock(ticker, quantity, stock_price, user_id):
     return "success"
 
 #sell stock function
-def sell_stock(ticker, quantity, stock_price, user_id):
+def sell_stock(ticker, quantity, stock_price, user_id = 1):
     query = "SELECT * FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
     stock = cur.fetchone()
