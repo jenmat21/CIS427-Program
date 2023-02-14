@@ -1,16 +1,14 @@
 #server
 
 import socket
-import sqlite3 as sql
-import os
-import pydb #database manipulation commands are available via this file
+import pydb #database initialization are available via this file
 
 
 #setup global variables
-PORT = 8414
+PORT = 8414 #PORT for server address
 MSGLEN = 256
 DBNAME = "stockDB"
-serverAddress = ("localhost", PORT)
+serverAddress = ("localhost", PORT) #change server address string if desired
 status = True
 
 #init db and setup cursor
