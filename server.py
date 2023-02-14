@@ -8,7 +8,7 @@ import pydb #database manipulation commands are available via this file
 
 #setup global variables
 PORT = 8414
-MSGLEN = 128
+MSGLEN = 256
 DBNAME = "stockDB"
 serverAddress = ("localhost", PORT)
 status = True
@@ -35,10 +35,12 @@ except Exception as e:
     print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
 
 #DATABASE FUNCTIONS
+#Adds new user with provided info
 def addUser(fName, lName, username, password, startBalance):
     cur.execute(f"INSERT INTO Users (first_name, last_name, user_name, password, usd_balance) VALUES ('{fName}', '{lName}', '{username}', '{password}', {startBalance})")
     db.commit()
 
+#returns user tuple with userID
 def getUserInfo(userID):
     cur.execute("SELECT * FROM Users WHERE ID = " + str(userID))
     user = cur.fetchall()
@@ -81,6 +83,7 @@ def recieveMsg():
     print("msg '" + returnStr.strip() + "' recieved with total bytes: " + str(bytesRecieved))
     return returnStr.strip()
 
+#returns user balance of user with userID
 def balance(userID):
     UI = getUserInfo(userID)
     if UI != None:
@@ -88,6 +91,7 @@ def balance(userID):
     else:
         return None
 
+#buy stock funciton
 def buy_stock(ticker, quantity, stock_price, user_id):
     # Check if user has sufficient funds
     userBal = balance(user_id)
@@ -99,11 +103,12 @@ def buy_stock(ticker, quantity, stock_price, user_id):
     query = "SELECT * FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
     stock = cur.fetchall()
-    if stock != None:
+    if stock is not None:
         query = "UPDATE Stocks SET stock_balance = stock_balance + ? WHERE stock_symbol = ? AND user_id = ?"
         cur.execute(query, (quantity, ticker, user_id))
-    query = "INSERT INTO Stocks (stock_symbol, stock_name, stock_balance, user_id) VALUES (?, ?, ?, ?)"
-    cur.execute(query, (ticker, ticker, quantity, user_id))
+    else:
+        query = "INSERT INTO Stocks (stock_symbol, stock_name, stock_balance, user_id) VALUES (?, ?, ?, ?)"
+        cur.execute(query, (ticker, ticker, quantity, user_id))
 
     # Update user balance
     query = "UPDATE Users SET usd_balance = usd_balance - ? WHERE ID = ?"
@@ -112,14 +117,15 @@ def buy_stock(ticker, quantity, stock_price, user_id):
     db.commit()
     return "success"
 
+#sell stock function
 def sell_stock(ticker, quantity, stock_price, user_id):
     query = "SELECT * FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
-    stock = cur.fetchall()
-    if stock == None:
+    stock = cur.fetchone()
+    if stock is None: #check if user has any of said stock
         return "notExist"
-    stock_balance = stock[0][3]
-    if stock_balance < float(quantity):
+    stock_balance = stock[3]
+    if stock_balance < float(quantity): #check if user has enough of the stock
         return "lessQuantity"
 
     # Update stock quantity
@@ -131,7 +137,7 @@ def sell_stock(ticker, quantity, stock_price, user_id):
     query = "SELECT stock_balance FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
     dbQuantity =  cur.fetchone()[0]
-    if dbQuantity < threshold:
+    if dbQuantity < threshold: #delete stock if user has sold all of it
         query = "DELETE FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
         cur.execute(query, (ticker, user_id))
 
@@ -143,6 +149,7 @@ def sell_stock(ticker, quantity, stock_price, user_id):
     db.commit()
     return "success"
 
+#returns a list of all stock tuples with user_id
 def list_stocks(user_id):
     query = "SELECT * FROM Stocks WHERE user_id = ?"
     cur.execute(query, (user_id,))
@@ -160,25 +167,28 @@ def shutdown():
 
 #main server loop - accept connection - runs command loop until quit or shutdown is recieved
 while status:
+    #Accepts conneciton to client
     (clientSocket, clientAddr) = serverSocket.accept()
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")
     client = True
 
+    #add new user to DB if it doesn't exist
     if (getUserInfo(1) == None):
         addUser("NULL", "NULL", "client", "NULL", 100)
 
+    #main loop
     while status and client:
         msg = recieveMsg()
-        if msg.lower() == "shutdown".lower():
+        if msg.lower() == "shutdown".lower(): #shutdown command
             shutdown()
-        elif msg.lower() == "quit".lower():
+        elif msg.lower() == "quit".lower(): #quit command - listen for next client afterwards
             print(f"Client with address {clientAddr[0]}:{clientAddr[1]} disconnected \nListening for new client on port {PORT}")
             client = False  
-        elif msg.lower()[0:7] == "balance".lower():
+        elif msg.lower()[0:7] == "balance".lower(): #user balance command, user id is 1 by default
             userBalance = balance(1)
 
-            sendMsg("200 OK " + str(round(userBalance, 2)) + " " + str(1))
-        elif msg.lower()[0:4] == "list".lower():
+            sendMsg("200 OK " + str(round(userBalance, 2)))
+        elif msg.lower()[0:4] == "list".lower(): #list user's stocks, user id is 1 by default
             stocks = list_stocks(1)
             sendString = ""
 
@@ -186,24 +196,24 @@ while status:
                 sendString = sendString + f"[{stock[0]},{stock[1]},{stock[2]},{round(stock[3], 2)},{stock[4]}] "
 
             sendMsg("200 OK " + sendString)
-        elif msg.lower()[0:3] == "buy".lower():
+        elif msg.lower()[0:3] == "buy".lower(): #buy function
             params = msg[4:].split()
-            success = buy_stock(params[0], params[1], params[2], params[3])
+            success = buy_stock(params[0].upper(), params[1], params[2], params[3])
             newBal = balance(params[3])
 
             if success == "success":
-                sendMsg("200 OK " + f"Successfully bought {params[1]} of {params[0]}. New balance of user {params[3]}: {round(newBal, 2)}")
+                sendMsg("200 OK " + f"Successfully bought {params[1]} of {params[0].upper()}. New balance of user {params[3]}: {round(newBal, 2)}")
             else:
                 sendMsg("400 ERROR " + "Unable to buy stock. User balance insuffecient")
-        elif msg.lower()[0:4] == "sell".lower():
+        elif msg.lower()[0:4] == "sell".lower(): #sell function
             params = msg[5:].split()
-            success = sell_stock(params[0], params[1], params[2], params[3])
+            success = sell_stock(params[0].upper(), params[1], params[2], params[3])
             newBal = balance(params[3])
 
             if success == "success":
-                sendMsg("200 OK " + f"Successfully sold {params[1]} of stock {params[0]}. New balance of user {params[3]}: {round(newBal, 2)}")
+                sendMsg("200 OK " + f"Successfully sold {params[1]} of stock {params[0].upper()}. New balance of user {params[3]}: {round(newBal, 2)}")
             elif success == "lessQuantity":
-                sendMsg("400 ERROR " + f"Unable to sell stock. User holds insuffecient amount of stock {params[0]}")
+                sendMsg("400 ERROR " + f"Unable to sell stock. User holds insuffecient amount of stock {params[0].upper()}")
             elif success == "notExist":
                 sendMsg("400 ERROR " + f"Unable to sell stock. Stock entry doesn't exist")
         else:

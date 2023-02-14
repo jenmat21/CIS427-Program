@@ -4,7 +4,7 @@ import sqlite3 as sql
 db = None
 cur = None
 
-#db init
+#db init function called by server - in a seperate file to reduce clutter in the server file
 def initDB(DBNAME):
     global db
     global cur
@@ -16,7 +16,7 @@ def initDB(DBNAME):
         print("Database failed to initialize with error " + str(e))
         return None
 
-
+    #create users table
     cur.execute('''CREATE TABLE IF NOT EXISTS Users 
            ( 
             ID integer NOT NULL PRIMARY KEY AUTOINCREMENT,  
@@ -28,6 +28,7 @@ def initDB(DBNAME):
             ); ''')
     print("Users table created in database")
 
+    #create stocks table
     cur.execute('''CREATE TABLE IF NOT EXISTS Stocks  
            ( 
             ID integer NOT NULL PRIMARY KEY AUTOINCREMENT, 
@@ -39,17 +40,3 @@ def initDB(DBNAME):
             ); ''')
     print("Stocks table created in database")
     return db
-    
-#db get user info
-def getUserInfo(userID):
-        cur.execute("SELECT * FROM Users WHERE ID = " + str(userID))
-        user = cur.fetchall()
-        if len(user) == 0:
-                return(None)
-        else:
-                 return(user)
-
-#db addUser
-def addUser(fName, lName, username, password, startBalance):
-        print("in")
-        cur.execute(f"INSERT INTO Users (first_name, last_name, user_name, password, usd_balance) VALUES ('{fName}', '{lName}', '{username}', '{password}', {startBalance})")

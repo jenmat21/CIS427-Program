@@ -11,7 +11,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 connectCmd = input("Please input a server address and port: ")
 address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
 connection = False
-MSGLEN = 128
+MSGLEN = 256
 
 #try to connect to server - error and exit program if it fails
 try: 
@@ -53,6 +53,7 @@ def recieveMsg():
     print("msg '" + returnStr.strip() + "' recieved with total bytes: " + str(bytesRecieved))
     return returnStr.strip()
 
+#client close function
 def quitClient():
     s.close()
     print("Connection broken - Program exiting...")
@@ -63,9 +64,7 @@ def quitClient():
 #main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
 while connection:
     cmd = input("CMD>> ")
-    if cmd[0:1].lower() == "1".lower():
-        sendMsg(cmd[2:])
-    elif cmd.lower() == "shutdown".lower():
+    if cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
         print("Shutting down server...")
         quitClient()
@@ -109,3 +108,5 @@ while connection:
             print(response[7:])
         elif response[0:3] == "400":
             print(response)
+    else:
+        print(f"command '{cmd}' not recognized... please try again")
