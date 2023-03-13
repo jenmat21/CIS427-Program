@@ -28,6 +28,14 @@ def initDB(DBNAME):
             ); ''')
     print("Users table created in database")
 
+    #Initialize tuples in users table
+    cur.execute('''INSERT INTO Users (user_name, password, usd_balance) 
+                    VALUES ("root", "root01", 100),
+                    ("Mary", "Mary01", 100),
+                    ("John", "John01", 100),
+                    ("Moe", "Moe01", 100); ''')
+    print("Usrs table filled with default users")
+
     #create stocks table
     cur.execute('''CREATE TABLE IF NOT EXISTS Stocks  
            ( 

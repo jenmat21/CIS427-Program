@@ -164,16 +164,30 @@ def shutdown():
     print("Server shutting down...")
     serverSocket.close()
 
+def login(userID, password):
+    #check if userID exists
+    query = "SELECT * FROM Users WHERE user_name = ?"
+    cur.execute(query, (userID,))
+    user = cur.fetchone()
+    if user == None:
+        return "notExist"
+
+    #check password
+    print(user)
+    if user[4] == password:
+        return "success " + str(user[0]) + " " + str(user[3])
+    else:
+        return "passWrong " + str(user[3])
+
+
 #main server loop - accept connection - runs command loop until quit or shutdown is recieved
 while status:
     #Accepts conneciton to client
     (clientSocket, clientAddr) = serverSocket.accept()
     print(f"Connection accepted from {clientAddr[0]}:{clientAddr[1]}\n")
     client = True
-
-    #add new user to DB if it doesn't exist
-    if (getUserInfo(1) == None):
-        addUser("NULL", "NULL", "client", "NULL", 100)
+    clientUID = None
+    clientUserName = ""
 
     #main loop
     while status and client:
@@ -182,13 +196,29 @@ while status:
             shutdown()
         elif msg.lower() == "quit".lower(): #quit command - listen for next client afterwards
             print(f"Client with address {clientAddr[0]}:{clientAddr[1]} disconnected \nListening for new client on port {PORT}")
-            client = False  
-        elif msg.lower()[0:7] == "balance".lower(): #user balance command, user id is 1 by default
-            userBalance = balance(1)
+            client = False 
+        elif msg.lower()[0:5] == "login".lower():
+            params = msg[6:].split()
+            loginTry = login(params[0], params[1])
+            print(loginTry)
 
+            if loginTry[0:7] == "success":
+                clientUID = loginTry[8:9]
+                clientUserName = loginTry[10:]
+                sendMsg(f"200 OK {clientUID} Successfully logged in user {clientUserName} with userID {clientUID}")
+            elif loginTry == "notExist":
+                sendMsg("403 ERROR User does not exist")
+            elif loginTry[0:9] == "passWrong":
+                sendMsg(f"403 Error Password incorrect for user {loginTry[10:]}")
+        elif msg.lower() == "logout".lower():
+            clientUID = None
+            clientUserName = ""
+            sendMsg("200 OK")
+        elif msg.lower()[0:7] == "balance".lower(): #user balance command, user id is 1 by default
+            userBalance = balance(clientUID)
             sendMsg("200 OK " + str(round(userBalance, 2)))
         elif msg.lower()[0:4] == "list".lower(): #list user's stocks, user id is 1 by default
-            stocks = list_stocks(1)
+            stocks = list_stocks(clientUID)
             sendString = ""
 
             for stock in stocks:
@@ -214,7 +244,7 @@ while status:
             elif success == "lessQuantity":
                 sendMsg("400 ERROR " + f"Unable to sell stock. User holds insuffecient amount of stock {params[0].upper()}")
             elif success == "notExist":
-                sendMsg("400 ERROR " + f"Unable to sell stock. Stock entry doesn't exist")
+                sendMsg("401 ERROR " + f"Unable to sell stock. Stock entry doesn't exist")
         else:
             sendMsg("400 ERROR Invalid Command")
         

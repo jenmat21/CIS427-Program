@@ -13,13 +13,19 @@ address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":
 connection = False
 MSGLEN = 256
 
-#try to connect to server - error and exit program if it fails
-try: 
-    s.connect(address)
-    connection = True
-    print(f"Connection successfully established with {address[0]}:{address[1]}\n")
-except Exception as e:
-    print(f"Connection could not be established with server on {address[0]}:{address[1]} \nException is " + str(e) + "\nProgram exiting...")
+#try to connect to server - error if it fails and prompt again for server address
+while connection == False:
+    try: 
+        s.connect(address)
+        connection = True
+        print(f"Connection successfully established with {address[0]}:{address[1]}\n")
+    except Exception as e:
+        print(f"Connection could not be established with server on {address[0]}:{address[1]} \nException is " + str(e))
+        connectCmd = input("Please input another server address and port: ")
+        address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
+
+
+
 
 #sends input string of max length MSGLEN to the server
 def sendMsg(msg):
@@ -29,7 +35,7 @@ def sendMsg(msg):
     while totalSent < MSGLEN:
         sent = s.send(msg[totalSent:].encode("utf-8"))
         if sent == 0 and msg != "":
-            quit()
+            quitClient()
             break
         elif msg == "":
             break
@@ -62,8 +68,17 @@ def quitClient():
     return
 
 #main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
+loggedIn = False
+uid = None
+userName = None
 while connection:
     cmd = input("CMD>> ")
+
+    #check login
+    if loggedIn == False and (cmd.lower() != "quit" and cmd[0:5].lower() != "login"):
+        print("Command cannot be executed. You are not logged in. \nPlease try the login command or quit the program.")
+        continue
+
     if cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
         print("Shutting down server...")
@@ -71,18 +86,34 @@ while connection:
     elif cmd.lower() == "quit".lower():
         sendMsg("quit")
         quitClient()
+    elif cmd[0:5].lower() == "login".lower():
+        sendMsg(cmd)
+        response = recieveMsg()
+        if response[0:3] == "200":
+            loggedIn = True
+            uid = response[7:8]
+            userName = cmd.split()[1]
+            print(response[9:])
+        elif response[0:3] == "403":
+            print(response)
+    elif cmd.lower() == "logout".lower():
+        sendMsg(cmd)
+        response = recieveMsg()
+        uid = None
+        userName = ""
+        loggedIn = False
     elif cmd.lower()[0:7] == "balance".lower():
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
-            print(f"Balance for user {1}: " + response[7:])
+            print(f"Balance for user {userName}: " + response[7:])
         elif response[0:3] == "400":
             print(response)
     elif cmd.lower()[0:4] == "list".lower():
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
-            print(f"The list of stock records for user {1}:")
+            print(f"The list of stock records for user {userName}:")
 
             stocks = response[7:].split()
             stocksList = []
@@ -388,7 +419,7 @@ while connection:
         response = recieveMsg()
         if response[0:3] == "200":
             print(response[7:])
-        elif response[0:3] == "400":
+        elif response[0:3] == "400" or response[0:3] == "401":
             print(response)
     else:
         print(f"command '{cmd}' not recognized... please try again")
