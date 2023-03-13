@@ -1,15 +1,14 @@
 #database file
 
 import sqlite3 as sql
-db = None
-cur = None
+dbName = ""
 
 #db init function called by server - in a seperate file to reduce clutter in the server file
 def initDB(DBNAME):
-    global db
-    global cur
     try:
         db = sql.connect(DBNAME)
+        global dbName 
+        dbName = DBNAME
         print("Database " + DBNAME + " created")
         cur = db.cursor()
     except Exception as e:
@@ -48,3 +47,7 @@ def initDB(DBNAME):
             ); ''')
     print("Stocks table created in database")
     return db
+
+def getDB():
+    retDB = sql.connect(dbName)
+    return retDB
