@@ -2,6 +2,7 @@
 
 import socket
 import threading
+import sqlite3 as sql
 import pydb #database initialization are available via this file
 
 
@@ -16,8 +17,8 @@ clientSockets = []
 clientThreads = []
 
 #init db and setup cursor
-db = pydb.initDB(DBNAME)
-if db != None:
+newDb = pydb.initDB(DBNAME)
+if newDb != None:
     print("Connected to database: " + DBNAME + "\n")
 else:
     status = False
@@ -36,11 +37,6 @@ except Exception as e:
     print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
 
 #DATABASE FUNCTIONS
-#Adds new user with provided info
-def addUser(cur, fName, lName, username, password, startBalance):
-    cur.execute(f"INSERT INTO Users (first_name, last_name, user_name, password, usd_balance) VALUES ('{fName}', '{lName}', '{username}', '{password}', {startBalance})")
-    db.commit()
-
 #returns user tuple with userID
 def getUserInfo(cur, userID):
     cur.execute("SELECT * FROM Users WHERE ID = " + str(userID))
@@ -56,7 +52,13 @@ def sendMsg(msg, cSocket):
     while len(msg) < MSGLEN:
         msg = msg + " "
     while totalSent < MSGLEN:
-        sent = clientSocket.send(msg[totalSent:].encode("utf-8"))
+        try:
+            sent = cSocket.send(msg[totalSent:].encode("utf-8"))
+            print("sent")
+        except Exception as e:
+            print(e)
+            threadClose(cSocket)
+            break
         if sent == 0 and msg != "":
             break
         elif msg == "":
@@ -69,7 +71,12 @@ def recieveMsg(cSocket):
     chunks = []
     bytesRecieved = 0
     while bytesRecieved < MSGLEN:
-        chunk = cSocket.recv(min(MSGLEN - bytesRecieved, 2048))
+        try:
+            chunk = cSocket.recv(min(MSGLEN - bytesRecieved, 2048))
+        except Exception as e:
+            print(e)
+            threadClose(cSocket)
+            break
         if chunk.decode("utf-8") == "":
             threadClose(cSocket)
             break
@@ -90,9 +97,9 @@ def balance(cur, userID):
         return None
 
 #buy stock funciton
-def buy_stock(cur, ticker, quantity, stock_price, user_id):
+def buy_stock(cur: sql.Cursor, ticker, quantity, stock_price, user_id):
     # Check if user has sufficient funds
-    userBal = balance(user_id)
+    userBal = balance(cur, user_id)
     totalCost = float(quantity) * float(stock_price)
     if userBal < totalCost:
         return "failure"
@@ -113,11 +120,11 @@ def buy_stock(cur, ticker, quantity, stock_price, user_id):
     query = "UPDATE Users SET usd_balance = usd_balance - ? WHERE ID = ?"
     cur.execute(query, (totalCost, user_id))
 
-    db.commit()
+    cur.connection.commit()
     return "success"
 
 #sell stock function
-def sell_stock(cur, ticker, quantity, stock_price, user_id):
+def sell_stock(cur: sql.Cursor, ticker, quantity, stock_price, user_id):
     query = "SELECT * FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
     stock = cur.fetchone()
@@ -145,7 +152,7 @@ def sell_stock(cur, ticker, quantity, stock_price, user_id):
     query = "UPDATE Users SET usd_balance = usd_balance + ? WHERE ID = ?"
     cur.execute(query, (float(quantity) * float(stock_price), user_id))
 
-    db.commit()
+    cur.connection.commit()
     return "success"
 
 #returns a list of all stock tuples with user_id
@@ -161,9 +168,11 @@ def list_stocks(cur, user_id):
 def shutdown():
     global status
     status = False
+    cSockCopy = clientSockets[:]
+    for i,sock in enumerate(cSockCopy):
+        if threadClose(sock):
+            pass
     print("Server shutting down...")
-    for i,sock in enumerate(clientSockets):
-        threadClose(sock, clientThreads[i])
     serverSocket.close()
 
 def login(cur, userID, password):
@@ -182,29 +191,38 @@ def login(cur, userID, password):
     
 def threadClose(clientSocket, clientThread = None):
     sockID = None
+    threadID = None
     for i,sock in enumerate(clientSockets):
         if sock.getpeername()[0] == clientSocket.getpeername()[0] and sock.getpeername()[1] == clientSocket.getpeername()[1]:
             sockID = i
-    if sockID != None:
+            threadID = i
+    if sockID != None and threadID != None:
         if clientThread == None:
             clientThread = threading.current_thread()
         clientSockets.pop(sockID)
-        clientThreads.pop(clientThreads.index(clientThread))
+        clientThreads.pop(threadID)
         addr = clientSocket.getpeername()
         print(f"Client with address {addr[0]}:{addr[1]} disconnected")
+        return True
+    print(sockID, threadID)
+    return False
 
 def isSocketClose(sock: socket.socket):
     try:
         # this will try to read bytes without blocking and also without removing them from buffer (peek only)
-        data = sock.recv(16, socket.MSG_DONTWAIT | socket.MSG_PEEK)
-        if len(data) == 0:
+        sock.setblocking(False)
+        data = sock.recv(16, socket.MSG_PEEK)
+        if data.decode("utf-8") == "":
             return True
     except BlockingIOError:
+        sock.setblocking(True)
         return False  # socket is open and reading from it would block
     except ConnectionResetError:
         return True  # socket was closed for some other reason
     except Exception as e:
+        sock.setblocking(True)
         return False
+    sock.setblocking(True)
     return False
 
 #thread function
@@ -220,7 +238,8 @@ def threadLoop(clientSocket):
         if msg.lower() == "shutdown".lower(): #shutdown command
             shutdown()
         elif msg.lower() == "quit".lower(): #quit command - listen for next client afterwards
-            threadClose(clientSocket)
+            if threadClose(clientSocket) == True:
+                pass
         elif msg.lower()[0:5] == "login".lower():
             params = msg[6:].split()
             loginTry = login(cur, params[0], params[1])
@@ -268,13 +287,16 @@ def threadLoop(clientSocket):
                 sendMsg("400 ERROR " + f"Unable to sell stock. User holds insuffecient amount of stock {params[0].upper()}", clientSocket)
             elif success == "notExist":
                 sendMsg("401 ERROR " + f"Unable to sell stock. Stock entry doesn't exist", clientSocket)
-        else:
+        elif not isSocketClose(clientSocket):
             sendMsg("400 ERROR Invalid Command", clientSocket)
 
 #main server loop - accept connections from clients
 while status:
     if len(clientSockets) < MAXCLIENTS:
-        (clientSocket, clientAddr) = serverSocket.accept()
+        try:
+            (clientSocket, clientAddr) = serverSocket.accept()
+        except Exception as e:
+            break
         clientSockets.append(clientSocket)
 
         cThread = threading.Thread(target=threadLoop, args=(clientSocket,))

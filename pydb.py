@@ -33,7 +33,7 @@ def initDB(DBNAME):
                     ("Mary", "Mary01", 100),
                     ("John", "John01", 100),
                     ("Moe", "Moe01", 100); ''')
-    print("Usrs table filled with default users")
+    print("Users table filled with default users")
 
     #create stocks table
     cur.execute('''CREATE TABLE IF NOT EXISTS Stocks  
@@ -46,6 +46,8 @@ def initDB(DBNAME):
             FOREIGN KEY (user_id) REFERENCES Users (ID)             
             ); ''')
     print("Stocks table created in database")
+    db.commit()
+    cur.close()
     return db
 
 def getDB():

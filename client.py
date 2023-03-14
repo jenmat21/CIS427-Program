@@ -1,6 +1,7 @@
 #client 
 
 import socket
+import threading
 
 print("Welcome to the stock trading application!\n")
 
@@ -22,6 +23,8 @@ while connection == False:
     except Exception as e:
         print(f"Connection could not be established with server on {address[0]}:{address[1]} \nException is " + str(e))
         connectCmd = input("Please input another server address and port: ")
+        if connectCmd.lower() == "quit":
+            break
         address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
 
 
@@ -47,6 +50,7 @@ def recieveMsg():
     chunks = []
     bytesRecieved = 0
     while bytesRecieved < MSGLEN:
+        print("recieving")
         chunk = s.recv(min(MSGLEN - bytesRecieved, 2048))
         if chunk.decode("utf-8") == "":
             quitClient()
@@ -62,10 +66,28 @@ def recieveMsg():
 #client close function
 def quitClient():
     s.close()
-    print("Connection broken - Program exiting...")
+    print("Connection broken - Program exiting...\n")
     global connection 
     connection = False
     return
+
+def isServerClose(sock: socket.socket):
+    try:
+        # this will try to read bytes without blocking and also without removing them from buffer (peek only)
+        sock.setblocking(False)
+        data = sock.recv(16, socket.MSG_PEEK)
+        if data.decode("utf-8") == "":
+            return True
+    except BlockingIOError:
+        sock.setblocking(True)
+        return False  # socket is open and reading from it would block
+    except ConnectionResetError:
+        return True  # socket was closed for some other reason
+    except Exception as e:
+        sock.setblocking(True)
+        return False
+    sock.setblocking(True)
+    return False
 
 #main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
 loggedIn = False
@@ -73,6 +95,12 @@ uid = None
 userName = None
 while connection:
     cmd = input("CMD>> ")
+
+    #check if server is shutdown
+    if isServerClose(s):
+        print("Cannot execute command because server has been shutdown")
+        quitClient()
+        break
 
     #check login
     if loggedIn == False and (cmd.lower() != "quit" and cmd[0:5].lower() != "login"):
