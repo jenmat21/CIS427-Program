@@ -15,6 +15,7 @@ serverAddress = ("localhost", PORT) #change server address string if desired
 status = True
 clientSockets = []
 clientThreads = []
+usersOnline = ["" for x in range(0,10)]
 
 #init db and setup cursor
 newDb = pydb.initDB(DBNAME)
@@ -48,45 +49,46 @@ def getUserInfo(cur, userID):
 
 #sends input string to client of max length MSGLEN
 def sendMsg(msg, cSocket):
-    totalSent = 0
-    while len(msg) < MSGLEN:
-        msg = msg + " "
-    while totalSent < MSGLEN:
-        try:
-            sent = cSocket.send(msg[totalSent:].encode("utf-8"))
-            print("sent")
-        except Exception as e:
-            print(e)
-            threadClose(cSocket)
-            break
-        if sent == 0 and msg != "":
-            break
-        elif msg == "":
-            break
-        totalSent += sent
-    print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
+    if cSocket in clientSockets:
+        totalSent = 0
+        while len(msg) < MSGLEN:
+            msg = msg + " "
+        while totalSent < MSGLEN:
+            try:
+                sent = cSocket.send(msg[totalSent:].encode("utf-8"))
+            except Exception as e:
+                print(e)
+                threadClose(cSocket)
+                break
+            if sent == 0 and msg != "":
+                break
+            elif msg == "":
+                break
+            totalSent += sent
+        print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
 
 #recieves string from client
 def recieveMsg(cSocket):
-    chunks = []
-    bytesRecieved = 0
-    while bytesRecieved < MSGLEN:
-        try:
-            chunk = cSocket.recv(min(MSGLEN - bytesRecieved, 2048))
-        except Exception as e:
-            print(e)
-            threadClose(cSocket)
-            break
-        if chunk.decode("utf-8") == "":
-            threadClose(cSocket)
-            break
-        chunks.append(chunk)
-        bytesRecieved += len(chunk)
-    returnStr = ""
-    for c in chunks:
-        returnStr = returnStr + c.decode("utf-8")
-    print("msg '" + returnStr.strip() + "' recieved with total bytes: " + str(bytesRecieved))
-    return returnStr.strip()
+    if cSocket in clientSockets:
+        chunks = []
+        bytesRecieved = 0
+        while bytesRecieved < MSGLEN:
+            try:
+                chunk = cSocket.recv(min(MSGLEN - bytesRecieved, 2048))
+            except Exception as e:
+                print(e)
+                threadClose(cSocket)
+                break
+            if chunk.decode("utf-8") == "":
+                threadClose(cSocket)
+                break
+            chunks.append(chunk)
+            bytesRecieved += len(chunk)
+        returnStr = ""
+        for c in chunks:
+            returnStr = returnStr + c.decode("utf-8")
+        print("msg '" + returnStr.strip() + "' recieved with total bytes: " + str(bytesRecieved))
+        return returnStr.strip()
 
 #returns user balance of user with userID
 def balance(cur, userID):
@@ -192,26 +194,35 @@ def login(cur, userID, password):
 def threadClose(clientSocket, clientThread = None):
     sockID = None
     threadID = None
+    userIndex = None
     for i,sock in enumerate(clientSockets):
         if sock.getpeername()[0] == clientSocket.getpeername()[0] and sock.getpeername()[1] == clientSocket.getpeername()[1]:
             sockID = i
             threadID = i
+            userIndex = i
     if sockID != None and threadID != None:
         if clientThread == None:
             clientThread = threading.current_thread()
+        global status
+        if status == False:
+            sendMsg("shutdown", clientSocket)
         clientSockets.pop(sockID)
         clientThreads.pop(threadID)
+        try:
+            user = usersOnline[userIndex]
+            usersOnline.pop(userIndex)
+        except Exception as e:
+            pass
         addr = clientSocket.getpeername()
         print(f"Client with address {addr[0]}:{addr[1]} disconnected")
         return True
-    print(sockID, threadID)
     return False
 
 def isSocketClose(sock: socket.socket):
     try:
         # this will try to read bytes without blocking and also without removing them from buffer (peek only)
         sock.setblocking(False)
-        data = sock.recv(16, socket.MSG_PEEK)
+        data = sock.recv(2048, socket.MSG_PEEK)
         if data.decode("utf-8") == "":
             return True
     except BlockingIOError:
@@ -226,7 +237,7 @@ def isSocketClose(sock: socket.socket):
     return False
 
 #thread function
-def threadLoop(clientSocket):
+def threadLoop(clientSocket, clientIndex):
     clientUID = None
     clientUserName = ""
     db = pydb.getDB()
@@ -235,8 +246,15 @@ def threadLoop(clientSocket):
     #main loop
     while status and not isSocketClose(clientSocket):
         msg = recieveMsg(clientSocket)
+        if msg == None:
+            break
         if msg.lower() == "shutdown".lower(): #shutdown command
-            shutdown()
+            if usersOnline[clientIndex] == "root":   
+                sendMsg("200 OK Shutdown Initiated", clientSocket) 
+                shutdown()
+            else:
+                print("ERROR 400 User is not root, cannot issue shutdown command")
+                sendMsg("ERROR 400 User Not Root", clientSocket)
         elif msg.lower() == "quit".lower(): #quit command - listen for next client afterwards
             if threadClose(clientSocket) == True:
                 pass
@@ -247,6 +265,7 @@ def threadLoop(clientSocket):
             if loginTry[0:7] == "success":
                 clientUID = loginTry[8:9]
                 clientUserName = loginTry[10:]
+                usersOnline.insert(clientIndex, clientUserName)
                 sendMsg(f"200 OK {clientUID} Successfully logged in user {clientUserName} with userID {clientUID}", clientSocket)
             elif loginTry == "notExist":
                 sendMsg("403 ERROR User does not exist", clientSocket)
@@ -255,6 +274,7 @@ def threadLoop(clientSocket):
         elif msg.lower() == "logout".lower():
             clientUID = None
             clientUserName = ""
+            usersOnline.pop(clientIndex)
             sendMsg("200 OK", clientSocket)
         elif msg.lower()[0:7] == "balance".lower(): #user balance command, user id is 1 by default
             userBalance = balance(cur, clientUID)
@@ -299,7 +319,8 @@ while status:
             break
         clientSockets.append(clientSocket)
 
-        cThread = threading.Thread(target=threadLoop, args=(clientSocket,))
+        clientIndex = len(clientThreads)
+        cThread = threading.Thread(target=threadLoop, args=(clientSocket, clientIndex))
         clientThreads.append(cThread)
         cThread.start()
 
