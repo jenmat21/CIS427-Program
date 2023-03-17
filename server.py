@@ -15,6 +15,7 @@ serverAddress = ("localhost", PORT) #change server address string if desired
 status = True
 clientSockets = []
 clientThreads = []
+clientAddresses = []
 usersOnline = ["" for x in range(0,10)]
 
 #init db and setup cursor
@@ -97,6 +98,15 @@ def balance(cur, userID):
         return UI[0][5]
     else:
         return None
+    
+def who():
+    x = 0
+    who = ""
+    while x < len(usersOnline):
+        if(usersOnline[x] != ""):
+            who += usersOnline[x] + f"-{clientAddresses[x][0]}:{clientAddresses[x][1]} \n"
+        x+=1
+    return who
 
 #buy stock funciton
 def buy_stock(cur: sql.Cursor, ticker, quantity, stock_price, user_id):
@@ -266,6 +276,7 @@ def threadLoop(clientSocket, clientIndex):
                 clientUID = loginTry[8:9]
                 clientUserName = loginTry[10:]
                 usersOnline.insert(clientIndex, clientUserName)
+                clientAddresses.insert(clientIndex, clientAddr)
                 sendMsg(f"200 OK {clientUID} Successfully logged in user {clientUserName} with userID {clientUID}", clientSocket)
             elif loginTry == "notExist":
                 sendMsg("403 ERROR User does not exist", clientSocket)
@@ -307,6 +318,13 @@ def threadLoop(clientSocket, clientIndex):
                 sendMsg("400 ERROR " + f"Unable to sell stock. User holds insuffecient amount of stock {params[0].upper()}", clientSocket)
             elif success == "notExist":
                 sendMsg("401 ERROR " + f"Unable to sell stock. Stock entry doesn't exist", clientSocket)
+        elif msg.lower()[0:3] == "who".lower():
+            if usersOnline[clientIndex] == "root": 
+                ret = who()
+                sendMsg("200 OK " + f"{ret}", clientSocket)
+            else:
+                print("ERROR 400 User is not root, cannot issue who command")
+                sendMsg("ERROR 400 User Not Root", clientSocket)
         elif not isSocketClose(clientSocket):
             sendMsg("400 ERROR Invalid Command", clientSocket)
 
