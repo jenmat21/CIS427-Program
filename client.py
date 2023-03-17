@@ -120,14 +120,14 @@ def executeCMD(cmd: str):
         quitClient()
     elif cmd[0:5].lower() == "login".lower():
         params = cmd.split(" ")
-        if (len(params) == 0 or len(params) == 1):
-            un = input("Please enter a username")
-            password = input("Please enter password")
-            cmd = ("LOGIN "+ un + password+"\n")
+        if (len(params) == 0 or len(params) == 1 or params[1] == ""):
+            un = input("Please enter a username: ")
+            password = input("Please enter password: ")
+            cmd = ("LOGIN " + un + " " + password)
         elif(len(params) == 2):
             un = params[1]
-            password = input("Please enter password")
-            cmd = ("LOGIN "+ un + password+"\n")
+            password = input("Please enter password: ")
+            cmd = ("LOGIN " + un + " " + password)
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
@@ -170,7 +170,10 @@ def executeCMD(cmd: str):
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
-            print(response)
+            print("The list of active users is: ")
+            activeUsers = response[6:].split()
+            for user in activeUsers:
+                print(user)
         else:
             print(response)
     elif cmd.lower()[0:3] == "buy".lower():

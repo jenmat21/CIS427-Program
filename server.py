@@ -98,15 +98,16 @@ def balance(cur, userID):
         return UI[0][5]
     else:
         return None
+    
 def who():
     x = 0
     who = ""
     while x < len(usersOnline):
-        print("The list of active users are:")
         if(usersOnline[x] != ""):
-            who += usersOnline[x] + "  " +clientAddresses[x] + "\n"
+            who += usersOnline[x] + f"-{clientAddresses[x][0]}:{clientAddresses[x][1]} \n"
         x+=1
     return who
+
 #buy stock funciton
 def buy_stock(cur: sql.Cursor, ticker, quantity, stock_price, user_id):
     # Check if user has sufficient funds
@@ -322,7 +323,7 @@ def threadLoop(clientSocket, clientIndex):
                 ret = who()
                 sendMsg("200 OK " + f"{ret}", clientSocket)
             else:
-                print("ERROR 400 User is not root, cannot issue shutdown command")
+                print("ERROR 400 User is not root, cannot issue who command")
                 sendMsg("ERROR 400 User Not Root", clientSocket)
         elif not isSocketClose(clientSocket):
             sendMsg("400 ERROR Invalid Command", clientSocket)
