@@ -1,6 +1,9 @@
 # client
 
 import socket
+import threading
+import time
+import sys
 
 print("Welcome to the stock trading application!\n")
 
@@ -14,7 +17,13 @@ address = (connectCmd[0:connectCmd.find(":")],
 connection = False
 MSGLEN = 256
 
-# try to connect to server - error if it fails and prompt again for server address
+#command thread variables
+message = ""
+oldMessage = ""
+listening = False
+listenerThread = None
+
+#try to connect to server - error if it fails and prompt again for server address
 while connection == False:
     try:
         s.connect(address)
@@ -25,11 +34,11 @@ while connection == False:
         print(
             f"Connection could not be established with server on {address[0]}:{address[1]} \nException is " + str(e))
         connectCmd = input("Please input another server address and port: ")
-        address = (connectCmd[0:connectCmd.find(":")],
-                   int(connectCmd[connectCmd.find(":") + 1:]))
+        if connectCmd.lower() == "quit":
+            break
+        address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
 
-
-# sends input string of max length MSGLEN to the server
+#sends input string of max length MSGLEN to the server
 def sendMsg(msg):
     totalSent = 0
     while len(msg) < MSGLEN:
@@ -69,28 +78,52 @@ def recieveMsg():
 
 def quitClient():
     s.close()
-    print("Connection broken - Program exiting...")
-    global connection
+    print("Connection broken - Program exiting...\n")
+    global connection 
+    global listening
     connection = False
-    return
+    sys.exit(0)
 
+def isServerClose(sock: socket.socket):
+    try:
+        # this will try to read bytes without blocking and also without removing them from buffer (peek only)
+        sock.setblocking(False)
+        data = sock.recv(2048, socket.MSG_PEEK)
+        if data.decode("utf-8") == "":
+            return True
+    except BlockingIOError:
+        sock.setblocking(True)
+        return False  # socket is open and reading from it would block
+    except ConnectionResetError:
+        return True  # socket was closed for some other reason
+    except Exception as e:
+        sock.setblocking(True)
+        return False
+    sock.setblocking(True)
+    return False
 
-# main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
+#executes command
 loggedIn = False
 uid = None
 userName = None
-while connection:
-    cmd = input("CMD>> ")
-
-    # check login
+def executeCMD(cmd: str):
+    global uid
+    global userName
+    #check login
+    global loggedIn
     if loggedIn == False and (cmd.lower() != "quit" and cmd[0:5].lower() != "login"):
         print("Command cannot be executed. You are not logged in. \nPlease try the login command or quit the program.")
-        continue
-
+        return
+        
+    #run command
     if cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
-        print("Shutting down server...")
-        quitClient()
+        response = recieveMsg()
+        if response[0:6] == "200 OK":
+            print(response[7:])
+            quitClient()
+        else:
+            print(response)
     elif cmd.lower() == "quit".lower():
         sendMsg("quit")
         quitClient()
@@ -478,3 +511,48 @@ while connection:
             print(response)
     else:
         print(f"command '{cmd}' not recognized... please try again")
+
+def cmdListen():
+    global listening
+    global message
+    listening = True
+    cmd = input("CMD>> ")
+    listening = False
+    message = cmd
+
+
+#main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
+while connection:
+    #manage command listener
+    if listening == False:
+        if message != oldMessage:
+            oldMessage = message
+            executeThread = threading.Thread(target=executeCMD, args=(message,))
+            executeThread.start()
+            executeThread.join()
+        if connection == False:
+            break
+        listenerThread = threading.Thread(target=cmdListen, daemon=True, args=())
+        listenerThread.start()
+
+    #check for message from server
+    if connection == False:
+        break
+    try:
+        s.setblocking(False)
+        serverMSG = s.recv(2048, socket.MSG_PEEK)
+        s.setblocking(True)
+        if serverMSG.decode("utf-8") != "":
+            print(serverMSG.decode("utf-8").strip())
+            if serverMSG.decode("utf-8").strip() == "shutdown":
+                print("Shutdown command received from server")
+                quitClient()
+    except BlockingIOError: #no message recieved
+        s.setblocking(True) 
+    except Exception as e:
+        s.setblocking(True)
+        print(e)
+        quitClient()
+
+    #loop delay
+    time.sleep(0.1)
