@@ -105,8 +105,7 @@ def executeCMD(cmd: str):
     global loggedIn
     if loggedIn == False and (cmd.lower() != "quit" and cmd[0:5].lower() != "login"):
         print("Command cannot be executed. You are not logged in. \nPlease try the login command or quit the program.")
-        return
-        
+        return   
     #run command
     if cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
@@ -120,6 +119,15 @@ def executeCMD(cmd: str):
         sendMsg("quit")
         quitClient()
     elif cmd[0:5].lower() == "login".lower():
+        params = cmd.split(" ")
+        if (len(params) == 0 or len(params) == 1):
+            un = input("Please enter a username")
+            password = input("Please enter password")
+            cmd = ("LOGIN "+ un + password+"\n")
+        elif(len(params) == 2):
+            un = params[1]
+            password = input("Please enter password")
+            cmd = ("LOGIN "+ un + password+"\n")
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
@@ -158,11 +166,17 @@ def executeCMD(cmd: str):
                 print(stock[0], stock[1], stock[3], stock[4])
         elif response[0:3] == "400":
             print(response)
+    elif cmd.lower()[0:3] == "who".lower():
+        sendMsg(cmd)
+        response = recieveMsg()
+        if response[0:3] == "200":
+            print(response)
+        else:
+            print(response)
     elif cmd.lower()[0:3] == "buy".lower():
         parameters = cmd.split(" ")
         price_flag = False #boolean for the price per share
         stock_flag = False #boolean for stock amount
-        uid_flag = False #boolean for user id
         symbol = ""
         if len(parameters) == 0 or len(parameters) == 1: #"BUY" or "BUY " case we need a stock symbol, price per share, stock ammount and a user id
             symbol = str(input("Please enter stock symbol\n"))
@@ -180,12 +194,6 @@ def executeCMD(cmd: str):
                         price_flag = True
                 except:
                     price_flag = False
-            while uid_flag == False:
-                try:
-                    uid = int(input("Please enter user id number as an integer\n"))#Ensure that uid is an integer
-                    uid_flag = True
-                except:
-                    uid_flag = False
             cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n" #The message to be sent
         elif len(parameters) == 2: #"BUY symbol" case
             symbol = str(parameters[1])
@@ -203,12 +211,6 @@ def executeCMD(cmd: str):
                         price_flag = True
                 except:
                     price_flag = False
-            while uid_flag == False:
-                try:
-                    uid = int(input("Please enter user id number as an integer\n"))
-                    uid_flag = True
-                except:
-                    uid_flag = False
             cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
         elif len(parameters) == 3:  #"BUY symbol pricepershare" case
             symbol = str(parameters[1])
@@ -229,13 +231,6 @@ def executeCMD(cmd: str):
                         price_flag = True
                 except:
                     price_flag = False
-            
-            while uid_flag == False:
-                try:
-                    uid = int(input("Please enter user id numberas an integer\n"))
-                    uid_flag = True
-                except:
-                    uid_flag = False
             cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"#The message to be sent
         elif len(parameters) == 4: #"BUY symbol pricepershare stockamount" case
             symbol = str(parameters[1])
@@ -259,12 +254,6 @@ def executeCMD(cmd: str):
                             price_flag = True
                     except:
                         price_flag = False
-            while uid_flag == False:
-                try:
-                    uid = int(input("Please enter user id number as an integer\n"))
-                    uid_flag = True
-                except:
-                    uid_flag = False
             cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"#Message to be sent
         elif len(parameters) >= 5:  #"BUY symbol price per share stock amount uid" and corners case
             symbol = str(parameters[1])
@@ -288,15 +277,6 @@ def executeCMD(cmd: str):
                             price_flag = True
                     except:
                         price_flag = False
-            try:
-                uid = int(parameters[4])
-            except:
-                while uid_flag == False:
-                    try:
-                        uid = float(input("Please enter user id number as an integer\n"))
-                        uid_flag = True
-                    except:
-                        uid_flag = False
             cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
         sendMsg(cmd)
         response = recieveMsg()
@@ -308,7 +288,6 @@ def executeCMD(cmd: str):
         parameters = cmd.split(" ")
         price_flag = False
         stock_flag = False
-        uid_flag = False
         symbol = ""
         if len(parameters) == 0 or len(parameters) == 1: #"SELL" and "SELL " case
             symbol = str(input("Please enter stock symbol\n"))
@@ -327,12 +306,6 @@ def executeCMD(cmd: str):
                         stock_flag = True
                 except:
                     stock_flag = False
-            while uid_flag == False:
-                try:
-                    uid = int(input("Please enter user id number as an integer\n"))
-                    uid_flag = True
-                except:
-                    uid_flag = False
             cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
         elif len(parameters) == 2: #"Sell symbol" case
             symbol = str(parameters[1])
@@ -351,12 +324,6 @@ def executeCMD(cmd: str):
                         stock_flag = True
                 except:
                     stock_flag = False
-            while uid_flag == False:
-                try:
-                    uid = int(input("Please enter user id number as an integer\n"))
-                    uid_flag = True
-                except:
-                    uid_flag = False
             cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
         elif len(parameters) == 3: #"SELL symbol stock" case
             symbol = str(parameters[1])
@@ -378,12 +345,6 @@ def executeCMD(cmd: str):
                             price_flag = True
                     except:
                         price_flag = False
-            while uid_flag == False:
-                try:
-                    uid = int(input("Please enter user id numberas an integer\n"))
-                    uid_flag = True
-                except:
-                    uid_flag = False
             cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
         elif len(parameters) == 4: #"SELL symbol stock price" case
             symbol = str(parameters[1])
@@ -408,12 +369,6 @@ def executeCMD(cmd: str):
                             stock_flag = True
                     except:
                         stock_flag = False
-            while uid_flag == False:
-                try:
-                    uid = int(input("Please enter user id number as an integer\n"))
-                    uid_flag = True
-                except:
-                    uid_flag = False
             cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
         elif len(parameters) >= 5: #"SELL symbol stock price uid" and corner case
             symbol = str(parameters[1])
@@ -438,15 +393,6 @@ def executeCMD(cmd: str):
                             stock_flag = True
                     except:
                         stock_flag = False
-            try:
-                uid = int(parameters[4])
-            except:
-                while uid_flag == False:
-                    try:
-                        uid = int(input("Please enter user id number as an integer\n"))
-                        uid_flag = True
-                    except:
-                        uid_flag = False
             cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
         sendMsg(cmd)
         response = recieveMsg()
