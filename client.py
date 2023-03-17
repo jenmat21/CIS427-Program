@@ -488,9 +488,8 @@ while connection:
         serverMSG = s.recv(2048, socket.MSG_PEEK)
         s.setblocking(True)
         if serverMSG.decode("utf-8") != "":
-            print(serverMSG.decode("utf-8").strip())
             if serverMSG.decode("utf-8").strip() == "shutdown":
-                print("Shutdown command received from server")
+                print("\nShutdown command received from server")
                 quitClient()
     except BlockingIOError: #no message recieved
         s.setblocking(True) 
