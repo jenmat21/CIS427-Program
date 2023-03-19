@@ -9,7 +9,7 @@ dbName = ""
 def initDB(DBNAME):
     try:
         db = sql.connect(DBNAME)
-        global dbName 
+        global dbName
         dbName = DBNAME
         print("Database " + DBNAME + " created")
         cur = db.cursor()
@@ -51,6 +51,7 @@ def initDB(DBNAME):
     db.commit()
     cur.close()
     return db
+
 
 def getDB():
     retDB = sql.connect(dbName)

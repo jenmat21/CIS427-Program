@@ -1,24 +1,24 @@
-#server
+# server
 
 import socket
 import threading
 import sqlite3 as sql
-import pydb #database initialization are available via this file
+import pydb  # database initialization are available via this file
 
 
-#setup global variables
-PORT = 8414 #PORT for server address
+# setup global variables
+PORT = 8414  # PORT for server address
 MSGLEN = 256
 DBNAME = "stockDB"
 MAXCLIENTS = 10
-serverAddress = ("localhost", PORT) #change server address string if desired
+serverAddress = ("localhost", PORT)  # change server address string if desired
 status = True
 clientSockets = []
 clientThreads = []
 clientAddresses = []
-usersOnline = ["" for x in range(0,10)]
+usersOnline = ["" for x in range(0, 10)]
 
-#init db and setup cursor
+# init db and setup cursor
 newDb = pydb.initDB(DBNAME)
 if newDb != None:
     print("Connected to database: " + DBNAME + "\n")
@@ -26,29 +26,35 @@ else:
     status = False
     print("Database failed to connect - Program exiting...")
 
-#create server socket
+# create server socket
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-#test connection with serverAddress - error if it doesn't work and exit program
+# test connection with serverAddress - error if it doesn't work and exit program
 try:
     serverSocket.bind(serverAddress)
     serverSocket.listen(5)
-    print(f"Server started on {serverAddress[0]} and is listening on port {serverAddress[1]} for clients\n")
+    print(
+        f"Server started on {serverAddress[0]} and is listening on port {serverAddress[1]} for clients\n")
 except Exception as e:
     status = False
-    print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(e) + "\nProgram exiting...")
+    print(f"Server failed to start on {serverAddress[0]}:{serverAddress[1]} \nException is" + str(
+        e) + "\nProgram exiting...")
 
-#DATABASE FUNCTIONS
-#returns user tuple with userID
+# DATABASE FUNCTIONS
+# returns user tuple with userID
+
+
 def getUserInfo(cur, userID):
     cur.execute("SELECT * FROM Users WHERE ID = " + str(userID))
     user = cur.fetchall()
     if len(user) == 0:
-        return(None)
+        return (None)
     else:
-        return(user)
+        return (user)
 
-#sends input string to client of max length MSGLEN
+# sends input string to client of max length MSGLEN
+
+
 def sendMsg(msg, cSocket):
     if cSocket in clientSockets:
         totalSent = 0
@@ -68,7 +74,9 @@ def sendMsg(msg, cSocket):
             totalSent += sent
         print("msg '" + msg.strip() + "' sent with total bytes: " + str(totalSent))
 
-#recieves string from client
+# recieves string from client
+
+
 def recieveMsg(cSocket):
     if cSocket in clientSockets:
         chunks = []
@@ -88,27 +96,52 @@ def recieveMsg(cSocket):
         returnStr = ""
         for c in chunks:
             returnStr = returnStr + c.decode("utf-8")
-        print("msg '" + returnStr.strip() + "' recieved with total bytes: " + str(bytesRecieved))
+        print("msg '" + returnStr.strip() +
+              "' recieved with total bytes: " + str(bytesRecieved))
         return returnStr.strip()
 
-#returns user balance of user with userID
+# returns user balance of user with userID
+
+
 def balance(cur, userID):
     UI = getUserInfo(cur, userID)
     if UI != None:
         return UI[0][5]
     else:
         return None
-    
+
+
 def who():
     x = 0
     who = ""
     while x < len(usersOnline):
-        if(usersOnline[x] != ""):
-            who += usersOnline[x] + f"-{clientAddresses[x][0]}:{clientAddresses[x][1]} \n"
-        x+=1
+        if (usersOnline[x] != ""):
+            who += usersOnline[x] + \
+                f"-{clientAddresses[x][0]}:{clientAddresses[x][1]} \n"
+        x += 1
     return who
 
-#buy stock funciton
+# deposit Funds in account
+
+
+def deposit(cur: sql.Cursor, deposit_amount, user_id):
+    # Check if user exists in database
+    query = "SELECT * FROM Users WHERE ID = ?"
+    cur.execute(query, (user_id,))
+    user = cur.fetchone()
+    if user is None:
+        return (f"400 User with ID {user_id} does not exist")
+    else:
+        # Update the user's account balance
+        new_balance = balance(cur, user_id) + float(deposit_amount)
+
+        cur.execute("UPDATE Users SET usd_balance = ? WHERE id = ?",
+                    (new_balance, user_id,))
+        return (f"Deposited {deposit_amount} into the account of user {user_id}")
+
+# buy stock funciton
+
+
 def buy_stock(cur: sql.Cursor, ticker, quantity, stock_price, user_id):
     # Check if user has sufficient funds
     userBal = balance(cur, user_id)
@@ -135,30 +168,31 @@ def buy_stock(cur: sql.Cursor, ticker, quantity, stock_price, user_id):
     cur.connection.commit()
     return "success"
 
-#sell stock function
+# sell stock function
+
+
 def sell_stock(cur: sql.Cursor, ticker, quantity, stock_price, user_id):
     query = "SELECT * FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
     stock = cur.fetchone()
-    if stock is None: #check if user has any of said stock
+    if stock is None:  # check if user has any of said stock
         return "notExist"
     stock_balance = stock[3]
-    if stock_balance < float(quantity): #check if user has enough of the stock
+    if stock_balance < float(quantity):  # check if user has enough of the stock
         return "lessQuantity"
 
     # Update stock quantity
     query = "UPDATE Stocks SET stock_balance = stock_balance - ? WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (quantity, ticker, user_id))
 
-    #Check stock quanity, delete if 0
+    # Check stock quanity, delete if 0
     threshold = 1e-5
     query = "SELECT stock_balance FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
     cur.execute(query, (ticker, user_id))
-    dbQuantity =  cur.fetchone()[0]
-    if dbQuantity < threshold: #delete stock if user has sold all of it
+    dbQuantity = cur.fetchone()[0]
+    if dbQuantity < threshold:  # delete stock if user has sold all of it
         query = "DELETE FROM Stocks WHERE stock_symbol = ? AND user_id = ?"
         cur.execute(query, (ticker, user_id))
-
 
     # Update user balance
     query = "UPDATE Users SET usd_balance = usd_balance + ? WHERE ID = ?"
@@ -167,45 +201,68 @@ def sell_stock(cur: sql.Cursor, ticker, quantity, stock_price, user_id):
     cur.connection.commit()
     return "success"
 
-#returns a list of all stock tuples with user_id
+# lookup function from PA2
+
+
+def lookup_stock(cur: sql.Cursor, stock_name, user_id):
+    # Find all stocks that match the given name
+    cur.execute("SELECT * FROM Stocks WHERE stock_symbol = ? AND ID = ?",
+                (stock_name, user_id,))
+    stocks = cur.fetchall()
+
+    if len(stocks) == 0:
+        # If no stocks match the given name, return a 404 response
+        return f"404 ERROR Your search for {stock_name} did not match any records."
+    else:
+        # Otherwise, return a 200 OK response and the matching stock(s)
+        response = f"200 OK Found {len(stocks)} match(es)"
+        for stock in stocks:
+            sendString = sendString + \
+                f"[{stock[0]},{stock[1]},{stock[2]},{round(stock[3], 2)},{stock[4]}] "
+        return response
+
+
+# returns a list of all stock tuples with user_id
 def list_stocks(cur, user_id):
     query = "SELECT * FROM Stocks WHERE user_id = ?"
     cur.execute(query, (user_id,))
-    
     stocks = cur.fetchall()
-
     return stocks
 
-#server shutdown command
+# server shutdown command
+
+
 def shutdown():
     global status
     status = False
     cSockCopy = clientSockets[:]
-    for i,sock in enumerate(cSockCopy):
+    for i, sock in enumerate(cSockCopy):
         if threadClose(sock):
             pass
     print("Server shutting down...")
     serverSocket.close()
 
+
 def login(cur, userID, password):
-    #check if userID exists
+    # check if userID exists
     query = "SELECT * FROM Users WHERE user_name = ?"
     cur.execute(query, (userID,))
     user = cur.fetchone()
     if user == None:
         return "notExist"
 
-    #check password
+    # check password
     if user[4] == password:
         return "success " + str(user[0]) + " " + str(user[3])
     else:
         return "passWrong " + str(user[3])
-    
-def threadClose(clientSocket, clientThread = None):
+
+
+def threadClose(clientSocket, clientThread=None):
     sockID = None
     threadID = None
     userIndex = None
-    for i,sock in enumerate(clientSockets):
+    for i, sock in enumerate(clientSockets):
         if sock.getpeername()[0] == clientSocket.getpeername()[0] and sock.getpeername()[1] == clientSocket.getpeername()[1]:
             sockID = i
             threadID = i
@@ -228,6 +285,7 @@ def threadClose(clientSocket, clientThread = None):
         return True
     return False
 
+
 def isSocketClose(sock: socket.socket):
     try:
         # this will try to read bytes without blocking and also without removing them from buffer (peek only)
@@ -246,26 +304,28 @@ def isSocketClose(sock: socket.socket):
     sock.setblocking(True)
     return False
 
-#thread function
+# thread function
+
+
 def threadLoop(clientSocket, clientIndex):
     clientUID = None
     clientUserName = ""
     db = pydb.getDB()
     cur = db.cursor()
 
-    #main loop
+    # main loop
     while status and not isSocketClose(clientSocket):
         msg = recieveMsg(clientSocket)
         if msg == None:
             break
-        if msg.lower() == "shutdown".lower(): #shutdown command
-            if usersOnline[clientIndex] == "root":   
-                sendMsg("200 OK Shutdown Initiated", clientSocket) 
+        if msg.lower() == "shutdown".lower():  # shutdown command
+            if usersOnline[clientIndex] == "root":
+                sendMsg("200 OK Shutdown Initiated", clientSocket)
                 shutdown()
             else:
                 print("ERROR 400 User is not root, cannot issue shutdown command")
                 sendMsg("ERROR 400 User Not Root", clientSocket)
-        elif msg.lower() == "quit".lower(): #quit command - listen for next client afterwards
+        elif msg.lower() == "quit".lower():  # quit command - listen for next client afterwards
             if threadClose(clientSocket) == True:
                 pass
         elif msg.lower()[0:5] == "login".lower():
@@ -277,49 +337,72 @@ def threadLoop(clientSocket, clientIndex):
                 clientUserName = loginTry[10:]
                 usersOnline.insert(clientIndex, clientUserName)
                 clientAddresses.insert(clientIndex, clientAddr)
-                sendMsg(f"200 OK {clientUID} Successfully logged in user {clientUserName} with userID {clientUID}", clientSocket)
+                sendMsg(
+                    f"200 OK {clientUID} Successfully logged in user {clientUserName} with userID {clientUID}", clientSocket)
             elif loginTry == "notExist":
                 sendMsg("403 ERROR User does not exist", clientSocket)
             elif loginTry[0:9] == "passWrong":
-                sendMsg(f"403 Error Password incorrect for user {loginTry[10:]}", clientSocket)
+                sendMsg(
+                    f"403 Error Password incorrect for user {loginTry[10:]}", clientSocket)
         elif msg.lower() == "logout".lower():
             clientUID = None
             clientUserName = ""
             usersOnline.pop(clientIndex)
             sendMsg("200 OK", clientSocket)
-        elif msg.lower()[0:7] == "balance".lower(): #user balance command, user id is 1 by default
+        # user balance command, user id is 1 by default
+        elif msg.lower()[0:7] == "balance".lower():
             userBalance = balance(cur, clientUID)
             sendMsg("200 OK " + str(round(userBalance, 2)), clientSocket)
-        elif msg.lower()[0:4] == "list".lower(): #list user's stocks, user id is 1 by default
+
+        elif msg.lower()[0:7] == "deposit".lower():
+            params = msg[8:].split()
+            dep = deposit(cur, params[0], params[1])
+            sendMsg("200 OK " + str(dep), clientSocket)
+
+        elif msg.lower()[0:7] == "lookup".lower():
+            params = msg[8:].split()
+            lup = lookup_stock(cur, params[0], params[1])
+            sendMsg(lup)
+
+        # list user's stocks, user id is 1 by default
+        elif msg.lower()[0:4] == "list".lower():
             stocks = list_stocks(cur, clientUID)
             sendString = ""
 
             for stock in stocks:
-                sendString = sendString + f"[{stock[0]},{stock[1]},{stock[2]},{round(stock[3], 2)},{stock[4]}] "
+                sendString = sendString + \
+                    f"[{stock[0]},{stock[1]},{stock[2]},{round(stock[3], 2)},{stock[4]}] "
 
-            sendMsg("200 OK " + sendString,clientSocket)
-        elif msg.lower()[0:3] == "buy".lower(): #buy function
+            sendMsg("200 OK " + sendString, clientSocket)
+        elif msg.lower()[0:3] == "buy".lower():  # buy function
             params = msg[4:].split()
-            success = buy_stock(cur, params[0].upper(), params[1], params[2], params[3])
+            success = buy_stock(
+                cur, params[0].upper(), params[1], params[2], params[3])
             newBal = balance(cur, params[3])
 
             if success == "success":
-                sendMsg("200 OK " + f"Successfully bought {params[1]} of {params[0].upper()}. New balance of user {params[3]}: {round(newBal, 2)}", clientSocket)
+                sendMsg(
+                    "200 OK " + f"Successfully bought {params[1]} of {params[0].upper()}. New balance of user {params[3]}: {round(newBal, 2)}", clientSocket)
             else:
-                sendMsg("400 ERROR " + "Unable to buy stock. User balance insuffecient", clientSocket)
-        elif msg.lower()[0:4] == "sell".lower(): #sell function
+                sendMsg(
+                    "400 ERROR " + "Unable to buy stock. User balance insuffecient", clientSocket)
+        elif msg.lower()[0:4] == "sell".lower():  # sell function
             params = msg[5:].split()
-            success = sell_stock(cur, params[0].upper(), params[1], params[2], params[3])
+            success = sell_stock(
+                cur, params[0].upper(), params[1], params[2], params[3])
             newBal = balance(cur, params[3])
 
             if success == "success":
-                sendMsg("200 OK " + f"Successfully sold {params[1]} of stock {params[0].upper()}. New balance of user {params[3]}: {round(newBal, 2)}", clientSocket)
+                sendMsg(
+                    "200 OK " + f"Successfully sold {params[1]} of stock {params[0].upper()}. New balance of user {params[3]}: {round(newBal, 2)}", clientSocket)
             elif success == "lessQuantity":
-                sendMsg("400 ERROR " + f"Unable to sell stock. User holds insuffecient amount of stock {params[0].upper()}", clientSocket)
+                sendMsg(
+                    "400 ERROR " + f"Unable to sell stock. User holds insuffecient amount of stock {params[0].upper()}", clientSocket)
             elif success == "notExist":
-                sendMsg("401 ERROR " + f"Unable to sell stock. Stock entry doesn't exist", clientSocket)
+                sendMsg(
+                    "401 ERROR " + f"Unable to sell stock. Stock entry doesn't exist", clientSocket)
         elif msg.lower()[0:3] == "who".lower():
-            if usersOnline[clientIndex] == "root": 
+            if usersOnline[clientIndex] == "root":
                 ret = who()
                 sendMsg("200 OK " + f"{ret}", clientSocket)
             else:
@@ -328,7 +411,8 @@ def threadLoop(clientSocket, clientIndex):
         elif not isSocketClose(clientSocket):
             sendMsg("400 ERROR Invalid Command", clientSocket)
 
-#main server loop - accept connections from clients
+
+# main server loop - accept connections from clients
 while status:
     if len(clientSockets) < MAXCLIENTS:
         try:
@@ -338,8 +422,10 @@ while status:
         clientSockets.append(clientSocket)
 
         clientIndex = len(clientThreads)
-        cThread = threading.Thread(target=threadLoop, args=(clientSocket, clientIndex))
+        cThread = threading.Thread(
+            target=threadLoop, args=(clientSocket, clientIndex))
         clientThreads.append(cThread)
         cThread.start()
 
-        print(f"\nConnection accepted from {clientAddr[0]}:{clientAddr[1]}\nStarting new thread for client\n")
+        print(
+            f"\nConnection accepted from {clientAddr[0]}:{clientAddr[1]}\nStarting new thread for client\n")

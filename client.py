@@ -17,13 +17,13 @@ address = (connectCmd[0:connectCmd.find(":")],
 connection = False
 MSGLEN = 256
 
-#command thread variables
+# command thread variables
 message = ""
 oldMessage = ""
 listening = False
 listenerThread = None
 
-#try to connect to server - error if it fails and prompt again for server address
+# try to connect to server - error if it fails and prompt again for server address
 while connection == False:
     try:
         s.connect(address)
@@ -36,9 +36,12 @@ while connection == False:
         connectCmd = input("Please input another server address and port: ")
         if connectCmd.lower() == "quit":
             break
-        address = (connectCmd[0:connectCmd.find(":")], int(connectCmd[connectCmd.find(":") + 1:]))
+        address = (connectCmd[0:connectCmd.find(":")],
+                   int(connectCmd[connectCmd.find(":") + 1:]))
 
-#sends input string of max length MSGLEN to the server
+# sends input string of max length MSGLEN to the server
+
+
 def sendMsg(msg):
     totalSent = 0
     while len(msg) < MSGLEN:
@@ -79,10 +82,11 @@ def recieveMsg():
 def quitClient():
     s.close()
     print("Connection broken - Program exiting...\n")
-    global connection 
+    global connection
     global listening
     connection = False
     sys.exit(0)
+
 
 def isServerClose(sock: socket.socket):
     try:
@@ -102,19 +106,22 @@ def isServerClose(sock: socket.socket):
     sock.setblocking(True)
     return False
 
-#executes command
+
+# executes command
 loggedIn = False
 uid = None
 userName = None
+
+
 def executeCMD(cmd: str):
     global uid
     global userName
-    #check login
+    # check login
     global loggedIn
     if loggedIn == False and (cmd.lower() != "quit" and cmd[0:5].lower() != "login"):
         print("Command cannot be executed. You are not logged in. \nPlease try the login command or quit the program.")
-        return   
-    #run command
+        return
+    # run command
     if cmd.lower() == "shutdown".lower():
         sendMsg(cmd)
         response = recieveMsg()
@@ -132,7 +139,7 @@ def executeCMD(cmd: str):
             un = input("Please enter a username: ")
             password = input("Please enter password: ")
             cmd = ("LOGIN " + un + " " + password)
-        elif(len(params) == 2):
+        elif (len(params) == 2):
             un = params[1]
             password = input("Please enter password: ")
             cmd = ("LOGIN " + un + " " + password)
@@ -157,6 +164,20 @@ def executeCMD(cmd: str):
         if response[0:3] == "200":
             print(f"Balance for user {userName}: " + response[7:])
         elif response[0:3] == "400":
+            print(response)
+    elif cmd.lower()[0:7] == "deposit".lower():
+        sendMsg(cmd + " "+str(uid))
+        response = recieveMsg()
+        if response[0:3] == "200":
+            print(f"Updated Balance for user {userName}: " + response[7:])
+        elif response[0:3] == "400":
+            print(response)
+    elif cmd.lower()[0:6] == "lookup".lower():
+        sendMsg(cmd + " " + str(uid))
+        response = recieveMsg()
+        if response[0:3] == "200":
+            print(f"Updated Balance for user {userName}: " + response[7:])
+        elif response[0:3] == "404":
             print(response)
     elif cmd.lower()[0:4] == "list".lower():
         sendMsg(cmd)
@@ -186,8 +207,8 @@ def executeCMD(cmd: str):
             print(response)
     elif cmd.lower()[0:3] == "buy".lower():
         parameters = cmd.split(" ")
-        price_flag = False #boolean for the price per share
-        stock_flag = False #boolean for stock amount
+        price_flag = False  # boolean for the price per share
+        stock_flag = False  # boolean for stock amount
         symbol = ""
         # "BUY" or "BUY " case we need a stock symbol, price per share, stock ammount and a user id
         if len(parameters) == 0 or len(parameters) == 1:
@@ -210,8 +231,10 @@ def executeCMD(cmd: str):
                         price_flag = True
                 except:
                     price_flag = False
-            cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n" #The message to be sent
-        elif len(parameters) == 2: #"BUY symbol" case
+            cmd = "BUY " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + \
+                str(uid)+"\n"  # The message to be sent
+        elif len(parameters) == 2:  # "BUY symbol" case
             symbol = str(parameters[1])
             while stock_flag == False:
                 try:
@@ -229,8 +252,9 @@ def executeCMD(cmd: str):
                         price_flag = True
                 except:
                     price_flag = False
-            cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
-        elif len(parameters) == 3:  #"BUY symbol pricepershare" case
+            cmd = "BUY " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + str(uid)+"\n"
+        elif len(parameters) == 3:  # "BUY symbol pricepershare" case
             symbol = str(parameters[1])
             try:
                 stock = float(parameters[2])
@@ -251,8 +275,10 @@ def executeCMD(cmd: str):
                         price_flag = True
                 except:
                     price_flag = False
-            cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"#The message to be sent
-        elif len(parameters) == 4: #"BUY symbol pricepershare stockamount" case
+            cmd = "BUY " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + \
+                str(uid)+"\n"  # The message to be sent
+        elif len(parameters) == 4:  # "BUY symbol pricepershare stockamount" case
             symbol = str(parameters[1])
             try:
                 stock = float(parameters[2])
@@ -276,8 +302,10 @@ def executeCMD(cmd: str):
                             price_flag = True
                     except:
                         price_flag = False
-            cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"#Message to be sent
-        elif len(parameters) >= 5:  #"BUY symbol price per share stock amount uid" and corners case
+            cmd = "BUY " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + \
+                str(uid)+"\n"  # Message to be sent
+        elif len(parameters) >= 5:  # "BUY symbol price per share stock amount uid" and corners case
             symbol = str(parameters[1])
             try:
                 stock = float(parameters[2])
@@ -301,7 +329,8 @@ def executeCMD(cmd: str):
                             price_flag = True
                     except:
                         price_flag = False
-            cmd = "BUY " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
+            cmd = "BUY " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + str(uid)+"\n"
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
@@ -332,8 +361,9 @@ def executeCMD(cmd: str):
                         stock_flag = True
                 except:
                     stock_flag = False
-            cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
-        elif len(parameters) == 2: #"Sell symbol" case
+            cmd = "SELL " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + str(uid)+"\n"
+        elif len(parameters) == 2:  # "Sell symbol" case
             symbol = str(parameters[1])
             # Ensure real positive numbers for price and stock amount, ensure integer for uid
             while price_flag == False:
@@ -352,8 +382,9 @@ def executeCMD(cmd: str):
                         stock_flag = True
                 except:
                     stock_flag = False
-            cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
-        elif len(parameters) == 3: #"SELL symbol stock" case
+            cmd = "SELL " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + str(uid)+"\n"
+        elif len(parameters) == 3:  # "SELL symbol stock" case
             symbol = str(parameters[1])
             # Ensure real positive numbers for price and stock amount, ensure integer for uid
             try:
@@ -368,14 +399,16 @@ def executeCMD(cmd: str):
                     except:
                         stock_flag = False
             while price_flag == False:
-                    try:
-                        price = float(input("Please enter stock price per share as a float or integer\n"))
-                        if price > 0:
-                            price_flag = True
-                    except:
-                        price_flag = False
-            cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
-        elif len(parameters) == 4: #"SELL symbol stock price" case
+                try:
+                    price = float(
+                        input("Please enter stock price per share as a float or integer\n"))
+                    if price > 0:
+                        price_flag = True
+                except:
+                    price_flag = False
+            cmd = "SELL " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + str(uid)+"\n"
+        elif len(parameters) == 4:  # "SELL symbol stock price" case
             symbol = str(parameters[1])
             # Ensure real positive numbers for price and stock amount, ensure integer for uid
             try:
@@ -400,8 +433,9 @@ def executeCMD(cmd: str):
                             stock_flag = True
                     except:
                         stock_flag = False
-            cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
-        elif len(parameters) >= 5: #"SELL symbol stock price uid" and corner case
+            cmd = "SELL " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + str(uid)+"\n"
+        elif len(parameters) >= 5:  # "SELL symbol stock price uid" and corner case
             symbol = str(parameters[1])
             # Ensure real positive numbers for price and stock amount, ensure integer for uid
             try:
@@ -426,7 +460,8 @@ def executeCMD(cmd: str):
                             stock_flag = True
                     except:
                         stock_flag = False
-            cmd = "SELL " + symbol +" " + str(stock) +" "+ str(price) + " " + str(uid)+"\n"
+            cmd = "SELL " + symbol + " " + \
+                str(stock) + " " + str(price) + " " + str(uid)+"\n"
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
@@ -435,6 +470,7 @@ def executeCMD(cmd: str):
             print(response)
     else:
         print(f"command '{cmd}' not recognized... please try again")
+
 
 def cmdListen():
     global listening
@@ -445,21 +481,23 @@ def cmdListen():
     message = cmd
 
 
-#main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
+# main client command loop - "quit" to quit the program and "shutdown" to shutdown the server
 while connection:
-    #manage command listener
+    # manage command listener
     if listening == False:
         if message != oldMessage:
             oldMessage = message
-            executeThread = threading.Thread(target=executeCMD, args=(message,))
+            executeThread = threading.Thread(
+                target=executeCMD, args=(message,))
             executeThread.start()
             executeThread.join()
         if connection == False:
             break
-        listenerThread = threading.Thread(target=cmdListen, daemon=True, args=())
+        listenerThread = threading.Thread(
+            target=cmdListen, daemon=True, args=())
         listenerThread.start()
 
-    #check for message from server
+    # check for message from server
     if connection == False:
         break
     try:
@@ -470,12 +508,12 @@ while connection:
             if serverMSG.decode("utf-8").strip() == "shutdown":
                 print("\nShutdown command received from server")
                 quitClient()
-    except BlockingIOError: #no message recieved
-        s.setblocking(True) 
+    except BlockingIOError:  # no message recieved
+        s.setblocking(True)
     except Exception as e:
         s.setblocking(True)
         print(e)
         quitClient()
 
-    #loop delay
+    # loop delay
     time.sleep(0.1)
