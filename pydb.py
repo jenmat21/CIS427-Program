@@ -52,7 +52,6 @@ def initDB(DBNAME):
     cur.close()
     return db
 
-
 def getDB():
     retDB = sql.connect(dbName)
     return retDB
