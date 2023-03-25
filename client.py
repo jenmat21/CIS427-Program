@@ -267,6 +267,8 @@ def executeCMD(cmd: str):
             symbol = str(parameters[1])
             try:
                 stock = float(parameters[2])
+                if stock < 0:
+                    raise("less than 0")
             except:
                 while stock_flag == False:
                     try:
@@ -291,6 +293,8 @@ def executeCMD(cmd: str):
             symbol = str(parameters[1])
             try:
                 stock = float(parameters[2])
+                if stock < 0:
+                    raise("less than 0")
             except:
                 while stock_flag == False:
                     try:
@@ -398,6 +402,8 @@ def executeCMD(cmd: str):
             # Ensure real positive numbers for price and stock amount, ensure integer for uid
             try:
                 stock = float(parameters[2])
+                if stock < 0:
+                    raise("less than 0")
             except:
                 while stock_flag == False:
                     try:
@@ -460,6 +466,8 @@ def executeCMD(cmd: str):
                         price_flag = False
             try:
                 stock = float(parameters[2])
+                if stock < 0:
+                    raise("less than 0")
             except:
                 while stock_flag == False:
                     try:

@@ -126,6 +126,7 @@ def deposit(cur: sql.Cursor, deposit_amount, user_id):
 
         cur.execute("UPDATE Users SET usd_balance = ? WHERE id = ?",
                     (new_balance, user_id,))
+        cur.connection.commit()
         return (f"Deposited {deposit_amount} into the account of user {user_id}")
 
 # buy stock funciton
@@ -329,7 +330,6 @@ def threadLoop(clientSocket, clientIndex):
             clientUserName = ""
             usersOnline.pop(clientIndex)
             sendMsg("200 OK", clientSocket)
-        # user balance command, user id is 1 by default
         elif msg.lower()[0:7] == "balance".lower():
             userBalance = balance(cur, clientUID)
             sendMsg("200 OK " + str(round(userBalance, 2)), clientSocket)
