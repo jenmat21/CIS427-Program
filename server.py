@@ -107,8 +107,7 @@ def who():
     who = ""
     while x < len(usersOnline):
         if (usersOnline[x] != ""):
-            who += usersOnline[x] + \
-                f"-{clientAddresses[x][0]}:{clientAddresses[x][1]} \n"
+            who += usersOnline[x] + f"-{clientAddresses[x][0]}:{clientAddresses[x][1]} \n"
         x += 1
     return who
 
@@ -294,7 +293,7 @@ def isSocketClose(sock: socket.socket):
 # thread function
 
 
-def threadLoop(clientSocket, clientIndex):
+def threadLoop(clientSocket: socket.socket, clientIndex):
     clientUID = None
     clientUserName = ""
     db = pydb.getDB()
@@ -323,14 +322,12 @@ def threadLoop(clientSocket, clientIndex):
                 clientUID = loginTry[8:9]
                 clientUserName = loginTry[10:]
                 usersOnline.insert(clientIndex, clientUserName)
-                clientAddresses.insert(clientIndex, clientAddr)
-                sendMsg(
-                    f"200 OK {clientUID} Successfully logged in user {clientUserName} with userID {clientUID}", clientSocket)
+                clientAddresses.insert(clientIndex, clientSocket.getpeername())             
+                sendMsg( f"200 OK {clientUID} Successfully logged in user {clientUserName} with userID {clientUID}", clientSocket)
             elif loginTry == "notExist":
                 sendMsg("403 ERROR User does not exist", clientSocket)
             elif loginTry[0:9] == "passWrong":
-                sendMsg(
-                    f"403 Error Password incorrect for user {loginTry[10:]}", clientSocket)
+                sendMsg(f"403 Error Password incorrect for user {loginTry[10:]}", clientSocket)
         elif msg.lower() == "logout".lower():
             clientUID = None
             clientUserName = ""
@@ -406,11 +403,9 @@ while status:
             break
         clientSockets.append(clientSocket)
 
-        clientIndex = len(clientThreads)
-        cThread = threading.Thread(
-            target=threadLoop, args=(clientSocket, clientIndex))
+        clientIndex = len(clientSockets) - 1
+        cThread = threading.Thread(target=threadLoop, args=(clientSocket, clientIndex))
         clientThreads.append(cThread)
         cThread.start()
 
-        print(
-            f"\nConnection accepted from {clientAddr[0]}:{clientAddr[1]}\nStarting new thread for client\n")
+        print(f"\nConnection accepted from {clientAddr[0]}:{clientAddr[1]}\nStarting new thread for client\n")
