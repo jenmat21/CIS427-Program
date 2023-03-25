@@ -192,7 +192,10 @@ def executeCMD(cmd: str):
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
-            print(f"The list of stock records for user {userName}:")
+            if userName == "root":
+                print("The list of stock records for all users:")
+            else:
+                print(f"The list of stock records for user {userName}:")
 
             stocks = response[7:].split()
             stocksList = []

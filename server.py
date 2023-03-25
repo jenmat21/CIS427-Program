@@ -206,11 +206,17 @@ def lookup_stock(cur: sql.Cursor, stock_name, user_id):
 
 
 # returns a list of all stock tuples with user_id
-def list_stocks(cur, user_id):
-    query = "SELECT * FROM Stocks WHERE user_id = ?"
-    cur.execute(query, (user_id,))
-    stocks = cur.fetchall()
-    return stocks
+def list_stocks(cur, clientIndex, clientUID):
+    if usersOnline[clientIndex] == "root":
+        query = "SELECT * FROM Stocks"
+        cur.execute(query,)
+        stocks = cur.fetchall()
+        return stocks
+    else:
+        query = "SELECT * FROM Stocks WHERE user_id = ?"
+        cur.execute(query, (clientUID,))
+        stocks = cur.fetchall()
+        return stocks
 
 # server shutdown command
 def shutdown():
@@ -346,11 +352,11 @@ def threadLoop(clientSocket, clientIndex):
 
         # list user's stocks, user id is 1 by default
         elif msg.lower()[0:4] == "list".lower():
-            stocks = list_stocks(cur, clientUID)
-            sendString = ""
+            stocks = list_stocks(cur, clientIndex, clientUID)
 
+            sendString = ""
             for stock in stocks:
-                sendString = sendString + f"[{stock[0]},{stock[1]},{stock[2]},{round(stock[3], 2)},{stock[4]}] "
+                sendString += f"[{stock[0]},{stock[1]},{stock[2]},{round(stock[3], 2)},{stock[4]}] "
 
             sendMsg("200 OK " + sendString, clientSocket)
         elif msg.lower()[0:3] == "buy".lower():  # buy function
