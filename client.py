@@ -192,10 +192,6 @@ def executeCMD(cmd: str):
         sendMsg(cmd)
         response = recieveMsg()
         if response[0:3] == "200":
-            if userName == "root":
-                print("The list of stock records for all users:")
-            else:
-                print(f"The list of stock records for user {userName}:")
 
             stocks = response[7:].split()
             stocksList = []
@@ -203,8 +199,14 @@ def executeCMD(cmd: str):
                 stockTuple = stock[1:-1].split(",")
                 stocksList.append(stockTuple)
 
-            for stock in stocksList:
-                print(stock[0], stock[1], stock[3], stock[4])
+            if userName == "root":
+                print("The list of stock records for all users:")
+                for stock in stocksList:
+                    print(stock[0], stock[1], stock[3], stock[4])
+            else:
+                print(f"The list of stock records for user {userName}:")
+                for stock in stocksList:
+                    print(stock[0], stock[1], stock[3])
         elif response[0:3] == "400":
             print(response)
     elif cmd.lower()[0:3] == "who".lower():

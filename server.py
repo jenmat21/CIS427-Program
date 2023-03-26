@@ -210,7 +210,20 @@ def list_stocks(cur, clientIndex, clientUID):
         query = "SELECT * FROM Stocks"
         cur.execute(query,)
         stocks = cur.fetchall()
-        return stocks
+
+        stocksList = []
+        for stock in stocks:
+            stockEntry = []
+            for item in stock:
+                stockEntry.append(item)
+            stocksList.append(stockEntry)
+
+        query = "SELECT user_name FROM Users WHERE ID = ?"
+        for i,stock in enumerate(stocksList):
+            cur.execute(query, (stock[4],))
+            stocksList[i][4] = cur.fetchone()[0]
+
+        return stocksList
     else:
         query = "SELECT * FROM Stocks WHERE user_id = ?"
         cur.execute(query, (clientUID,))
@@ -322,6 +335,8 @@ def threadLoop(clientSocket: socket.socket, clientIndex):
                 clientUID = loginTry[8:9]
                 clientUserName = loginTry[10:]
                 usersOnline.insert(clientIndex, clientUserName)
+                if clientIndex != 9:
+                    usersOnline.pop(clientIndex+1)
                 clientAddresses.insert(clientIndex, clientSocket.getpeername())             
                 sendMsg( f"200 OK {clientUID} Successfully logged in user {clientUserName} with userID {clientUID}", clientSocket)
             elif loginTry == "notExist":
@@ -331,7 +346,8 @@ def threadLoop(clientSocket: socket.socket, clientIndex):
         elif msg.lower() == "logout".lower():
             clientUID = None
             clientUserName = ""
-            usersOnline.pop(clientIndex)
+            usersOnline[clientIndex] = ""
+            clientAddresses[clientIndex] = None
             sendMsg("200 OK", clientSocket)
         elif msg.lower()[0:7] == "balance".lower():
             userBalance = balance(cur, clientUID)
