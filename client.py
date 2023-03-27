@@ -166,6 +166,32 @@ def executeCMD(cmd: str):
         elif response[0:3] == "400":
             print(response)
     elif cmd.lower()[0:7] == "deposit".lower():
+        amount_flag = False
+        params = cmd.split(" ")
+        if (len(params) == 0 or len(params) == 1 or params[1] == ""):
+            amount = input("Please enter deposit amount")
+            while (amount_flag == False):
+                try:
+                        float(amount)
+                        amount_flag = True
+                
+                except:
+                    amount_flag = False
+                    amount = input("Please enter deposit amount")
+            
+            cmd = "DEPOSIT " + str(amount)
+        else:
+            amount = params[1]
+            while (amount_flag == False):
+                try:
+                        float(amount)
+                        amount_flag = True
+                
+                except:
+                    amount_flag = False
+                    amount = input("Please enter deposit amount")
+            cmd = "DEPOSIT " + str(amount)    
+        
         sendMsg(cmd + " "+str(uid))
         response = recieveMsg()
         if response[0:3] == "200":
@@ -173,6 +199,11 @@ def executeCMD(cmd: str):
         elif response[0:3] == "400":
             print(response)
     elif cmd.lower()[0:6] == "lookup".lower():
+        search_flag = False
+        params = cmd.split(" ")
+        if (len(params) == 0 or len(params) == 1 or params[1] == ""):
+            search = input("Please enter stock to lookup")           
+            cmd = "LOOKUP " + str(search)
         sendMsg(cmd + " " + str(uid))
         response = recieveMsg()
         if response[0:3] == "200":
