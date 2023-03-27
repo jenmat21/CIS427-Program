@@ -169,27 +169,29 @@ def executeCMD(cmd: str):
         amount_flag = False
         params = cmd.split(" ")
         if (len(params) == 0 or len(params) == 1 or params[1] == ""):
-            amount = input("Please enter deposit amount")
+            amount = input("Please enter deposit amount\n")
             while (amount_flag == False):
                 try:
-                        float(amount)
-                        amount_flag = True
-                
+                    float(amount)
+                    if float(amount) < 0:
+                        raise("negative")
+                    amount_flag = True
                 except:
                     amount_flag = False
-                    amount = input("Please enter deposit amount")
+                    amount = input("Please enter a positive deposit amount\n")
             
             cmd = "DEPOSIT " + str(amount)
         else:
             amount = params[1]
             while (amount_flag == False):
                 try:
-                        float(amount)
-                        amount_flag = True
-                
+                    float(amount)
+                    if float(amount) < 0:
+                        raise("negative")
+                    amount_flag = True
                 except:
                     amount_flag = False
-                    amount = input("Please enter deposit amount")
+                    amount = input("Please enter a positive deposit amount\n")
             cmd = "DEPOSIT " + str(amount)    
         
         sendMsg(cmd + " "+str(uid))
@@ -199,15 +201,14 @@ def executeCMD(cmd: str):
         elif response[0:3] == "400":
             print(response)
     elif cmd.lower()[0:6] == "lookup".lower():
-        search_flag = False
         params = cmd.split(" ")
         if (len(params) == 0 or len(params) == 1 or params[1] == ""):
-            search = input("Please enter stock to lookup")           
+            search = input("Please enter stock to lookup\n")           
             cmd = "LOOKUP " + str(search)
         sendMsg(cmd + " " + str(uid))
         response = recieveMsg()
         if response[0:3] == "200":
-            print(f"Found stock records matching you search: ")
+            print(f"Found stock records matching you search for user {userName}: ")
             
             stocks = response[7:].split()
             stocksList = []
@@ -216,7 +217,7 @@ def executeCMD(cmd: str):
                 stocksList.append(stockTuple)
 
             for stock in stocksList:
-                print(stock[0], stock[1], stock[3], stock[4])
+                print(stock[0], stock[1], stock[3])
         elif response[0:3] == "404":
             print(response)
     elif cmd.lower()[0:4] == "list".lower():
